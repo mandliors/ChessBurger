@@ -1,0 +1,55 @@
+General
+--------------
+Ponder
+MultiPV
+Use NNUE, EvalFile
+UCI_AnalyseMode
+UCI_Chess960
+UCI_LimitStrength, UCI_Elo
+Skill Level
+Move Overhead
+Slow Mover
+d
+eval
+flip
+
+GUI -> Engine
+-------------------
+uci -> uciok
+isready -> readyok
+setoption name <id> [value <x>] (pl.: setoption name Style value risky)
+ucinewgame (has to be sent even before the first game, after this isready should be sent too, new game will start after position and go commands)
+position [fen <fenstring> | startpos ]  moves <move1> .... <movei>
+go [wtime <x> | btime <x>] (white/black has x msec left on the clock)
+go [winc <x> | binc <x>] (white/black increment per move in mseconds if x > 0)
+go depth <x>
+go movetime <x> (search exactly x mseconds)
+go infinite (search until the "stop" command)
+stop
+
+Engine -> GUI
+----------------
+info depth <x>
+info time <x> (ms, sent with pv)
+info pv <move1> ... <movei> (best line)
+info multipv <num>
+info score cp <x> (score)
+info score mate <y> (mate in y moves)
+info lowerbound/upperbound
+info currmove <move>
+info nps <x> (x nodes searched per second)
+info cpuload <x> (cpu usage in permill)
+info currline <cpunr> <move1> ... <movei> (only if UCI_ShowCurrLine is set to true)
+
+Example
+-----------
+uci
+setoption name Hash value 32
+isready
+ucinewgame
+setoption name MultiPV value x
+setoption name UCI_AnalyseMode value true
+position startpos moves e2e4 e7e5
+go infinite
+stop
+//Also set MultiPV to see the best lines
