@@ -19,5 +19,6 @@ Plans:
   -Game analysis  
   -etc.  
  
- # How to use
- Simply download the zip, and run the WindowsBuild_vs2019 file. If you would like to use some other IDE, please check out how to use premake!
+# How to use
+Simply download the zip, and run the WindowsBuild_vs2019 file. If you would like to use some other IDE, please check out how to use premake!  
+Also, after building copy the assets folder into the executable's directory! 
