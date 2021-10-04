@@ -6,3 +6,5 @@
 /.vs
 /bin
 /obj
+/build
+/ChessBurger/obj
