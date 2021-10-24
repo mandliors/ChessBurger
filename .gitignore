@@ -1,0 +1,8 @@
+**.sln
+**.vcxproj
+**.vcxproj.filters
+.vs
+x64
+bin
+obj
+other
