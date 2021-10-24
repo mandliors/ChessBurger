@@ -150,7 +150,7 @@ void AnalysisBoard::Movelist_Update()
 		//Set size, text and position
 		UIText& text = Movelist_UITexts[i];
 		text.SetTextSize(MOVELIST_UITEXT_SIZE);
-		text.SetText(m_Moves[i]);
+		text.SetText(m_MovesSN[i]);
 		float w = text.GetBounds().width;
 		if (xOffset + w > Movelist_Bounds.width)
 		{
@@ -208,6 +208,23 @@ void AnalysisBoard::BestLines_Update()
 	BestLines_UITexts.resize(analysisData.BestLines.size());
 	for (int i = 0; i < BestLines_UITexts.size(); i++)
 		BestLines_UITexts[i].resize(analysisData.BestLines[i].size() + 1);
+	
+	//Calculate short notation
+	std::vector<std::vector<std::string>> BestLinesSN;
+	BestLinesSN.resize(analysisData.BestLines.size());
+	for (int i = 0; i < BestLinesSN.size(); i++)
+	{
+		BestLinesSN[i].resize(analysisData.BestLines[i].size());
+		for (int j = 0; j < BestLinesSN[i].size(); j++)
+		{
+			/*bool capture;
+			_TestMove(analysisData.BestLines[i][j], &capture);
+			_DoMove(analysisData.BestLines[i][j], false, false);
+			BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j], capture);*/
+			BestLinesSN[i][j] = analysisData.BestLines[i][j];
+		}
+		//_ReloadBoard();
+	}
 
 	//Add the evaluations to the beginning
 	Vector2 mousePos = GetMousePosition();
@@ -248,7 +265,7 @@ void AnalysisBoard::BestLines_Update()
 			//Set size, text and position
 			UIText& text = BestLines_UITexts[i][j];
 			text.SetTextSize(BESTLINES_UITEXT_SIZE);
-			text.SetText(analysisData.BestLines[i][j - 1]);
+			text.SetText(BestLinesSN[i][j - 1]);
 			float w = text.GetBounds().width;
 
 			//Move it off the screen if it does not fit onto the bestlines area

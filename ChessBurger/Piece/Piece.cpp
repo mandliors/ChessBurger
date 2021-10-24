@@ -114,14 +114,14 @@ Vector2 Piece::GetPreviousPosition() const
 	return m_PreviousPosition;
 }
 
-void Piece::TellBoardBounds(const Rectangle& boardBounds)
-{
-	m_BoardBounds = boardBounds;
-}
-
 void Piece::AddToMoveCount(int amount)
 {
 	m_MoveCount += amount;
+}
+
+void Piece::SetMoveCount(uint32_t count)
+{
+	m_MoveCount = count;
 }
 
 uint32_t Piece::GetMoveCount() const
@@ -134,6 +134,11 @@ int8_t Piece::GetSide() const
 	if (m_Type == PieceType::NONE) return -1;
 	else if ((int)m_Type < 6) return 0;
 	else return 1;
+}
+
+void Piece::TellBoardBounds(const Rectangle& boardBounds)
+{
+	m_BoardBounds = boardBounds;
 }
 
 bool Piece::OverlapPoint(const Vector2& point) const

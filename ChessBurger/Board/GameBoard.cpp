@@ -51,7 +51,7 @@ void GameBoard::Update()
 			m_ComputerThinkClock.Start();
 			if (m_ComputerThinkClock.GetSecondsLeft() <= 0.0)
 			{
-				_Move(GameData::CurrentEngine->GetAnalysisData().BestLines[0][0]);
+				_Move(GameData::CurrentEngine->GetAnalysisData().BestLines[0][0], true);
 				m_ComputerThinkClock.Pause();
 				m_ComputerThinkClock.Reset();
 				m_ComputerThinkSeconds = (double)GetRandomValue(COMPUTER_THINK_SECONDS_MIN * 10, COMPUTER_THINK_SECONDS_MAX * 10) / 10.0;

@@ -1,0 +1,85 @@
+﻿  core.c
+  models.c
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(273,22): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(305,54): warning C4305: 'function': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(335,43): warning C4305: 'function': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(346,43): warning C4305: 'function': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(534,23): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(535,29): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(543,23): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(544,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(568,20): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(559,21): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(560,25): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(576,29): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(586,29): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(587,27): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(609,44): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(611,44): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(612,21): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(618,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(619,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(620,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(601,37): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(602,31): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(603,23): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(604,23): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(605,23): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(606,23): warning C4244: 'initializing': conversion from 'double' to 'const float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(670,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(671,28): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(695,33): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(669,38): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(805,1): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(853,1): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(953,1): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1284,25): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1286,58): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1288,58): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1290,58): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1447,38): warning C4305: 'function': truncation from 'double' to 'float'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1464,20): warning C4244: '*=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1465,20): warning C4244: '*=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1466,20): warning C4244: '*=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1468,39): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1748,33): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1748,49): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1748,65): warning C4244: 'function': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\par_shapes.h(1717,30): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(3128,47): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(3129,47): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(3130,47): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(4266,29): warning C4267: 'initializing': conversion from 'size_t' to 'unsigned int', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(4940,44): warning C4018: '<': signed/unsigned mismatch
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(5133,44): warning C4018: '<': signed/unsigned mismatch
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(5159,44): warning C4018: '<': signed/unsigned mismatch
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(5220,75): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(5183,45): warning C4267: 'initializing': conversion from 'size_t' to 'unsigned int', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\models.c(5259,52): warning C4267: '+=': conversion from 'size_t' to 'int', possible loss of data
+  raudio.c
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(130,53): warning C4244: '=': conversion from 'float' to 'short', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(143,53): warning C4244: '=': conversion from 'float' to 'char', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(242,1): warning C4005: 'DEBUG': macro redefinition
+D:\Programming\C++\raylib\ChessBurger\raylib\src\raudio.c : message : see previous definition of 'DEBUG'
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1238,47): warning C4244: '=': conversion from 'uint16_t' to 'uint8_t', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1254,28): warning C4244: 'initializing': conversion from 'float' to 'unsigned int', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1256,33): warning C4244: 'initializing': conversion from 'float' to 'int8_t', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1417,43): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1424,53): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1426,43): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1437,43): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1464,41): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1824,41): warning C4244: 'function': conversion from 'int' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1933,31): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(1990,33): warning C4244: '=': conversion from 'float' to 'uint32_t', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(2029,45): warning C4244: '=': conversion from 'uint32_t' to 'float', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(2162,21): warning C4244: '+=': conversion from 'float' to 'uint64_t', possible loss of data
+D:\Programming\C++\raylib\ChessBurger\raylib\src\external\jar_xm.h(2321,38): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  rglfw.c
+  shapes.c
+  text.c
+  textures.c
+  utils.c
+  Generating Code...
+raudio.obj : warning LNK4006: PlaySound already defined in winmm.lib(WINMM.dll); second definition ignored
+  raylib.vcxproj -> D:\Programming\C++\raylib\ChessBurger\bin\Debug\raylib.lib

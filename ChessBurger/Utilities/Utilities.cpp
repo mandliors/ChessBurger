@@ -1,4 +1,5 @@
 #include "Utilities.h"
+#include <sstream>
 
 namespace Utils
 {
@@ -22,6 +23,29 @@ namespace Utils
 			s += "0";
 
 		return s;
+	}
+
+	std::vector<std::string> Split(std::string& text, const std::string& delimiter)
+	{
+		std::vector<std::string> splitted;
+		size_t pos = 0;
+		std::string token;
+		while ((pos = text.find(delimiter)) != std::string::npos)
+		{
+			token = text.substr(0, pos);
+			splitted.push_back(token);
+			text.erase(0, pos + delimiter.size());
+		}
+		splitted.push_back(text);
+
+		return splitted;
+	}
+
+	bool IsNumber(const std::string& s)
+	{
+		std::string::const_iterator it = s.begin();
+		while (it != s.end() && std::isdigit(*it)) ++it;
+		return !s.empty() && it == s.end();
 	}
 }
 

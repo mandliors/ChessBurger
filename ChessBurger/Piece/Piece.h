@@ -21,19 +21,26 @@ public:
 	void Update();
 	void Draw(const Texture2D& texture) const;
 	void DrawFlipped(const Texture2D& texture) const;
+
 	bool GetDrag() const;
 	void SetDrag(bool drag);
+
 	PieceType GetType() const;
 	void SetType(PieceType type);
+
 	Vector2 GetPosition() const;
 	void SetPosition(const Vector2& position);
+	Vector2 GetPreviousPosition() const;
+
 	void StartAnimation(const Vector2& position);
 	void StopAnimation();
-	Vector2 GetPreviousPosition() const;
-	void TellBoardBounds(const Rectangle& boardBounds);
+
 	void AddToMoveCount(int amount);
 	uint32_t GetMoveCount() const;
+	void SetMoveCount(uint32_t count);
+
 	int8_t GetSide() const;
+	void TellBoardBounds(const Rectangle& boardBounds);
 	bool OverlapPoint(const Vector2& point) const;
 
 public:
