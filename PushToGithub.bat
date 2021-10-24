@@ -1,4 +1,4 @@
-@ECHO off
+@echo off
 set /p message="message: "
 git add *
 git commit -m "%message%"
