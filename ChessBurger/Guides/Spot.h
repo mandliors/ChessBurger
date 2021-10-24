@@ -13,7 +13,7 @@ public:
 		: IGuide() { }
 
 	Spot(const Vector2& position, const Vector2& square, const Color& color, bool flip = false)
-		: IGuide(position, square, color, false) { }
+		: IGuide(position, square, color, flip) { }
 
 	void Draw(const Rectangle& boardBounds) const override
 	{

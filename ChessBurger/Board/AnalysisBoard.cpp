@@ -4,7 +4,7 @@
 #include "Utilities/Utilities.h"
 
 AnalysisBoard::AnalysisBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
-	: IBoard(colorBuffer, bounds), m_BestMoveArrow({}), EvalBar_Bounds({}), Movelist_Bounds({}), Movelist_UITexts({}), BestLines_Bounds({}), BestLines_UITexts({})
+	: IBoard(colorBuffer, bounds), m_BestMoveArrow({}), m_FrameCounter(0), EvalBar_Bounds({}), Movelist_Bounds({}), Movelist_UITexts({}), BestLines_Bounds({}), BestLines_UITexts({})
 {
 	m_AnalyseMode = true;
 	GameData::CurrentEngine->SetAnalyseMode(true);
@@ -204,26 +204,41 @@ bool AnalysisBoard::Movelist_CheckCursor() const
 void AnalysisBoard::BestLines_Update()
 {
 	//Resize the vectors
-	const Engine::AnalysisData& analysisData = GameData::CurrentEngine->GetAnalysisData();
+	Engine::AnalysisData& analysisData = const_cast<Engine::AnalysisData&>(GameData::CurrentEngine->GetAnalysisData());
 	BestLines_UITexts.resize(analysisData.BestLines.size());
 	for (int i = 0; i < BestLines_UITexts.size(); i++)
 		BestLines_UITexts[i].resize(analysisData.BestLines[i].size() + 1);
 	
 	//Calculate short notation
-	std::vector<std::vector<std::string>> BestLinesSN;
-	BestLinesSN.resize(analysisData.BestLines.size());
-	for (int i = 0; i < BestLinesSN.size(); i++)
+	if (m_FrameCounter++ * BESTLINES_UPDATES_PER_SEC % (GetFPS() + 1) == 0)
 	{
-		BestLinesSN[i].resize(analysisData.BestLines[i].size());
-		for (int j = 0; j < BestLinesSN[i].size(); j++)
+		m_FrameCounter = 0;
+		analysisData.BestLinesSN.resize(analysisData.BestLines.size());
+
+		//Backup
+		Piece backup[8][8];
+		memcpy(backup, m_Board, sizeof(m_Board));
+		Piece* m_WhiteKingBackup = m_WhiteKing;
+		Piece* m_BlackKingBackup = m_BlackKing;
+		int8_t sideToMoveBackup = m_SideToMove;
+
+		for (int i = 0; i < analysisData.BestLinesSN.size(); i++)
 		{
-			/*bool capture;
-			_TestMove(analysisData.BestLines[i][j], &capture);
-			_DoMove(analysisData.BestLines[i][j], false, false);
-			BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j], capture);*/
-			BestLinesSN[i][j] = analysisData.BestLines[i][j];
+			analysisData.BestLinesSN[i].resize(analysisData.BestLines[i].size());
+			for (int j = 0; j < analysisData.BestLinesSN[i].size(); j++)
+			{
+				bool capture;
+				_TestMove(analysisData.BestLines[i][j], &capture);
+				_DoMove(analysisData.BestLines[i][j], false, false);
+				analysisData.BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j], capture);
+			}
+			
+			//Restore
+			memcpy(m_Board, backup, sizeof(backup));
+			m_WhiteKing = m_WhiteKingBackup;
+			m_BlackKing = m_BlackKingBackup;
+			m_SideToMove = sideToMoveBackup;
 		}
-		//_ReloadBoard();
 	}
 
 	//Add the evaluations to the beginning
@@ -265,7 +280,7 @@ void AnalysisBoard::BestLines_Update()
 			//Set size, text and position
 			UIText& text = BestLines_UITexts[i][j];
 			text.SetTextSize(BESTLINES_UITEXT_SIZE);
-			text.SetText(BestLinesSN[i][j - 1]);
+			text.SetText(analysisData.BestLinesSN[i][j - 1]);
 			float w = text.GetBounds().width;
 
 			//Move it off the screen if it does not fit onto the bestlines area

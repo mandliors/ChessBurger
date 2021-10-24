@@ -20,6 +20,7 @@
 #define BESTLINES_SPACING 6
 #define BESTLINES_UITEXT_SIZE 18
 #define BESTLINES_UITEXT_SIZE_RATIO 1.2f
+#define BESTLINES_UPDATES_PER_SEC 30
 
 class AnalysisBoard : public IBoard
 {
@@ -46,6 +47,7 @@ private:
 
 private:
 	Arrow m_BestMoveArrow;
+	uint32_t m_FrameCounter;
 
 	//EvalBar
 	Rectangle EvalBar_Bounds;

@@ -59,6 +59,7 @@ IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
 
 void IBoard::Update()
 {
+	/*
 	//Get selected moves
 	if (m_SelectedPiece && (m_SelectedPiece->GetSide() == m_Side || m_AnalyseMode))
 	{
@@ -73,6 +74,7 @@ void IBoard::Update()
 			}
 		}
 	}
+	*/
 
 	//Set cursor and set drag
 	bool overlap = false;
@@ -129,9 +131,23 @@ void IBoard::Update()
 				if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 				{
 					m_SelectedPiece = &piece;
-					m_SelectionFrom = Highlight(m_SelectedPiece->GetPosition(), _GetSquare(m_SelectedPiece->GetPosition()), Fade(ORANGE, 0.4f));
+					m_SelectionFrom = Highlight(m_SelectedPiece->GetPosition(), _GetSquare(m_SelectedPiece->GetPosition()), Fade(ORANGE, 0.4f), m_Flipped);
 					m_DraggedPiece = m_SelectedPiece;
 					m_DraggedPiece->SetDrag(true);
+
+					if (m_SelectedPiece->GetSide() == m_Side || m_AnalyseMode)
+					{
+						m_SelectedMoves.clear();
+						std::string prevSquare = _ToChessNote(_GetRealSquare(m_SelectedPiece->GetPreviousPosition()));
+						for (int i = 0; i < m_LegalMoves.size(); i++)
+						{
+							if (m_LegalMoves[i].substr(0, 2) == prevSquare)
+							{
+								Vector2 square = _ToRealSquare(m_LegalMoves[i].substr(2, 2));
+								m_SelectedMoves.emplace_back(Vector2{ m_BoardBounds.x + (square.x + 0.5f) * m_SquareSize, m_BoardBounds.y + (square.y + 0.5f) * m_SquareSize }, square, Fade(BLACK, 0.4f), m_Flipped);
+							}
+						}
+					}
 				}
 				if (piece.GetSide() == m_Side || m_AnalyseMode)
 					overlap = true;
@@ -547,7 +563,7 @@ void IBoard::Reset(bool resetEnginePosition)
 	m_SelectedMoves.clear();
 
 	if (GameData::CurrentEngine && resetEnginePosition)
-		GameData::CurrentEngine->SetPosition("");
+		GameData::CurrentEngine->SetPosition(_GetFEN());
 }
 
 bool IBoard::LoadFEN(std::string& fen)
@@ -559,8 +575,8 @@ bool IBoard::LoadFEN(std::string& fen)
 	//Backup current state
 	Piece backup[8][8];
 	memcpy(backup, m_Board, sizeof(m_Board));
-	Piece* m_WhiteKingBackup = m_WhiteKing;
-	Piece* m_BlackKingBackup = m_BlackKing;
+	Piece* whiteKingBackup = m_WhiteKing;
+	Piece* blackKingBackup = m_BlackKing;
 	uint32_t whiteKingMoveCountBackup = m_WhiteKing->GetMoveCount();
 	uint32_t blackKingMoveCountBackup = m_BlackKing->GetMoveCount();
 
@@ -613,6 +629,8 @@ bool IBoard::LoadFEN(std::string& fen)
 	if (!valid)
 	{
 		memcpy(m_Board, backup, sizeof(backup));
+		m_WhiteKing = whiteKingBackup;
+		m_BlackKing = blackKingBackup;
 		return false;
 	}
 	else
@@ -683,7 +701,9 @@ bool IBoard::LoadFEN(std::string& fen)
 	//Set fullmove number
 	if (!Utils::IsNumber(splitted[5]))
 		return false;
+
 	m_MoveIndex = stoi(splitted[5]) * 2 + m_SideToMove - 3;
+	return true;
 }
 
 void IBoard::Clear()
@@ -755,7 +775,7 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 		{
 			_DoMove(fromSquare, toSquare, true, animated);
 			_GetLegalMoves(m_SideToMove);
-			GameData::CurrentEngine->SetPosition(_MovesToString());
+			GameData::CurrentEngine->SetPosition(_GetFEN());
 			m_Highlights.clear();
 			m_Arrows.clear();
 			return true;
@@ -839,8 +859,8 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 
 void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated)
 {
-	Vector2 fromSquare = _ToSquare(move.substr(0, 2));
-	Vector2 toSquare = _ToSquare(move.substr(2, 2));
+	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
+	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
 	IBoard::_DoMove(fromSquare, toSquare, registerMove, animated);
 }
 
@@ -878,8 +898,8 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 	//Backup current state
 	Piece backup[8][8];
 	memcpy(backup, m_Board, sizeof(m_Board));
-	Piece* m_WhiteKingBackup = m_WhiteKing;
-	Piece* m_BlackKingBackup = m_BlackKing;
+	Piece* whiteKingBackup = m_WhiteKing;
+	Piece* blackKingBackup = m_BlackKing;
 
 	//Move the piece in the array
 	int side = piece->GetSide();
@@ -899,23 +919,23 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 	if ((side == 0 && _IsAttacked(m_WhiteKing)) || (side == 1 && _IsAttacked(m_BlackKing)))
 	{
 		memcpy(m_Board, backup, sizeof(backup));
-		m_WhiteKing = m_WhiteKingBackup;
-		m_BlackKing = m_BlackKingBackup;
+		m_WhiteKing = whiteKingBackup;
+		m_BlackKing = blackKingBackup;
 		return false;
 	}
 	else
 	{
 		memcpy(m_Board, backup, sizeof(backup));
-		m_WhiteKing = m_WhiteKingBackup;
-		m_BlackKing = m_BlackKingBackup;
+		m_WhiteKing = whiteKingBackup;
+		m_BlackKing = blackKingBackup;
 		return true;
 	}
 }
 
 bool IBoard::_TestMove(const std::string& move, bool* capture)
 {
-	Vector2 fromSquare = _ToSquare(move.substr(0, 2));
-	Vector2 toSquare = _ToSquare(move.substr(2, 2));
+	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
+	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
 	return IBoard::_TestMove(fromSquare, toSquare, capture);
 }
 
@@ -1823,12 +1843,13 @@ void IBoard::_ReloadBoard()
 	bool flippedBackup = m_Flipped;
 	int32_t moveIndexBackup = m_MoveIndex;
 	int8_t sideToMoveBackup = m_SideToMove;
+
 	if (m_DraggedPiece)
 	{
 		m_DraggedPiece->SetDrag(false);
 		m_DraggedPiece = nullptr;
 	}
-	IBoard::Reset(false);
+	IBoard::Reset();
 	m_Flipped = flippedBackup;
 
 	//Redo moves
@@ -1872,8 +1893,7 @@ void IBoard::_ReloadBoard()
 	//Clear guides
 	m_Highlights.clear();
 	m_Arrows.clear();
-
-	GameData::CurrentEngine->SetPosition(_MovesToString());
+	GameData::CurrentEngine->SetPosition(_GetFEN());
 }
 
 std::string IBoard::_ToChessNote(const Vector2& square) const
@@ -1886,8 +1906,8 @@ std::string IBoard::_ToChessNote(const Vector2& square) const
 
 std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 {
-	Vector2 from = _ToSquare(move.substr(0, 2));
-	Vector2 to = _ToSquare(move.substr(2, 2));
+	Vector2 from = _ToRealSquare(move.substr(0, 2));
+	Vector2 to = _ToRealSquare(move.substr(2, 2));
 	Piece& piece = m_Board[(int)to.y][(int)to.x];
 
 	switch (piece.GetType())
@@ -2176,7 +2196,7 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 				return "K" + _ToChessNote(to);
 		}
 	}	
-	return "???";
+	return "";
 }
 
 Vector2 IBoard::_ToSquare(const std::string& move)const
@@ -2271,13 +2291,18 @@ std::string IBoard::_GetFEN()
 	if (fen.back() == ' ') fen += " -";
 	fen += " ";
 
-	//en passant target square (- or e3 etc)
-	std::string& move = m_Moves.back();
-	Vector2 from = _ToRealSquare(move.substr(0, 2));
-	Vector2 to = _ToRealSquare(move.substr(2, 2));
-	if (m_Board[(int)to.y][(int)to.x].GetType() == PieceType::W_PAWN && from.y - to.y == 2) fen += move.substr(0, 1) + std::to_string(3) + " ";
-	else if (m_Board[(int)to.y][(int)to.x].GetType() == PieceType::B_PAWN && to.y - from.y == 2) fen += move.substr(0, 1) + std::to_string(6) + " ";
-	else fen += "- ";
+	//en passant target square (- or e3 or c6 etc)
+	if (m_Moves.size() == 0)
+		fen += "- ";
+	else
+	{
+		std::string& move = m_Moves.back();
+		Vector2 from = _ToRealSquare(move.substr(0, 2));
+		Vector2 to = _ToRealSquare(move.substr(2, 2));
+		if (m_Board[(int)to.y][(int)to.x].GetType() == PieceType::W_PAWN && from.y - to.y == 2) fen += move.substr(0, 1) + std::to_string(3) + " ";
+		else if (m_Board[(int)to.y][(int)to.x].GetType() == PieceType::B_PAWN && to.y - from.y == 2) fen += move.substr(0, 1) + std::to_string(6) + " ";
+		else fen += "- ";
+	}
 
 	//halfmove clock
 	fen += std::to_string(m_HalfMoveClock) + " ";

@@ -32,6 +32,7 @@ Engine::Engine(const std::string& path, const std::string& name)
 
 	SetPosition("");
 	m_AnalysisData.BestLines.resize(GameData::EngineLines);
+	m_AnalysisData.BestLinesSN.resize(GameData::EngineLines);
 	m_AnalysisData.Evaluations.resize(GameData::EngineLines);
 }
 
@@ -79,11 +80,27 @@ void Engine::Start()
 	}
 }
 
-void Engine::SetPosition(const std::string& position)
+void Engine::SetPosition(const std::string& fen)
 {
 	m_AnalysisData.Depth = 0;
-	m_Position = position;
-	m_WhiteToMove = (std::count(position.begin(), position.end(), ' ') + 1) % 2;
+	m_Position = fen;
+	m_WhiteToMove = fen.find('w') == -1 ? false : true;
+
+	if (m_Read)
+	{
+		_WritePipe("stop");
+		_WritePipe("position fen " + m_Position);
+		_WritePipe("go infinite");
+	}
+	else
+		_WritePipe("position fen " + m_Position);
+}
+
+void Engine::SetPositionWithMoves(const std::string& moves)
+{
+	m_AnalysisData.Depth = 0;
+	m_Position = moves;
+	m_WhiteToMove = (std::count(moves.begin(), moves.end(), ' ') + 1) % 2;
 	
 	if (m_Read)
 	{

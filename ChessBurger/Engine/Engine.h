@@ -11,6 +11,7 @@ public:
 	struct AnalysisData
 	{
 		std::vector<std::vector<std::string>> BestLines;
+		std::vector<std::vector<std::string>> BestLinesSN;
 		std::vector<std::string> Evaluations;
 		uint32_t Depth;
 	};
@@ -21,7 +22,8 @@ public:
 
 	bool Init();
 	void Start();
-	void SetPosition(const std::string& position);
+	void SetPosition(const std::string& fen);
+	void SetPositionWithMoves(const std::string& moves);
 	void SetAnalyseMode(bool value);
 	void SendCommand(const std::string& command);
 	void Stop();
