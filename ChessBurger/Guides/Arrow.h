@@ -19,13 +19,13 @@ public:
 		{
 			Vector2 fromPos =
 			{
-				boardBounds.width - m_Position.x + 2 * boardBounds.x,
-				boardBounds.height - m_Position.y + 2 * boardBounds.y
+				2 * boardBounds.x + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.x,
+				2 * boardBounds.y + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.y
 			};
 			Vector2 toPos =
 			{
-				boardBounds.width - m_Position2.x + 2 * boardBounds.x,
-				boardBounds.height - m_Position2.y + 2 * boardBounds.y
+				2 * boardBounds.x + 8 * std::floor(boardBounds.width / 8.0f) - m_Position2.x,
+				2 * boardBounds.y + 8 * std::floor(boardBounds.width / 8.0f) - m_Position2.y
 			};
 			DrawLineEx(fromPos, toPos, Size / 7, m_Color);
 		}

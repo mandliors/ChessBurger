@@ -3,6 +3,7 @@
 #include "raylib.h"
 #include "IGuide.h"
 #include <memory>
+#include <cmath>
 
 class Highlight : public IGuide
 {
@@ -17,11 +18,11 @@ public:
 	{
 		if (m_Flip)
 		{
-			float size = boardBounds.width / 8.0f;
+			float size = std::floor(boardBounds.width / 8.0f);
 			Vector2 pos =
 			{
-				boardBounds.width - m_Position.x + 2 * boardBounds.x - size,
-				boardBounds.height - m_Position.y + 2 * boardBounds.y - size
+				2 * boardBounds.x + 7 * std::floor(boardBounds.width / 8.0f) - m_Position.x,
+				2 * boardBounds.y + 7 * std::floor(boardBounds.width / 8.0f) - m_Position.y
 			};
 			DrawRectangle(pos.x, pos.y, Size, Size, m_Color);
 		}

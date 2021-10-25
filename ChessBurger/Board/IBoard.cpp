@@ -59,23 +59,6 @@ IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
 
 void IBoard::Update()
 {
-	/*
-	//Get selected moves
-	if (m_SelectedPiece && (m_SelectedPiece->GetSide() == m_Side || m_AnalyseMode))
-	{
-		m_SelectedMoves.clear();
-		std::string square = _ToChessNote(_GetRealSquare(m_SelectedPiece->GetPreviousPosition()));
-		for (int i = 0; i < m_LegalMoves.size(); i++)
-		{
-			if (m_LegalMoves[i].substr(0, 2) == square)
-			{
-				Vector2 square = _ToRealSquare(m_LegalMoves[i].substr(2, 2));
-				m_SelectedMoves.emplace_back(Vector2{ m_BoardBounds.x + (square.x + 0.5f) * m_SquareSize, m_BoardBounds.y + (square.y + 0.5f) * m_SquareSize }, square, Fade(BLACK, 0.4f), m_Flipped);
-			}
-		}
-	}
-	*/
-
 	//Set cursor and set drag
 	bool overlap = false;
 	Vector2 mousePosition = GetMousePosition();

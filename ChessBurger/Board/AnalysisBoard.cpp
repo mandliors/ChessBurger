@@ -218,8 +218,10 @@ void AnalysisBoard::BestLines_Update()
 		//Backup
 		Piece backup[8][8];
 		memcpy(backup, m_Board, sizeof(m_Board));
-		Piece* m_WhiteKingBackup = m_WhiteKing;
-		Piece* m_BlackKingBackup = m_BlackKing;
+		Piece* whiteKingBackup = m_WhiteKing;
+		Piece* blackKingBackup = m_BlackKing;
+		bool whiteInCheckBackup = m_WhiteInCheck;
+		bool blackInCheckBackup = m_BlackInCheck;
 		int8_t sideToMoveBackup = m_SideToMove;
 
 		for (int i = 0; i < analysisData.BestLinesSN.size(); i++)
@@ -235,8 +237,10 @@ void AnalysisBoard::BestLines_Update()
 			
 			//Restore
 			memcpy(m_Board, backup, sizeof(backup));
-			m_WhiteKing = m_WhiteKingBackup;
-			m_BlackKing = m_BlackKingBackup;
+			m_WhiteKing = whiteKingBackup;
+			m_BlackKing = blackKingBackup;
+			m_WhiteInCheck = whiteInCheckBackup;
+			m_BlackInCheck = blackInCheckBackup;
 			m_SideToMove = sideToMoveBackup;
 		}
 	}

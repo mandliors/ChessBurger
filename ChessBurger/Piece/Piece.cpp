@@ -1,6 +1,7 @@
 #include "Piece.h"
 #include "GameData/GameData.h"
 #include "extras/easings.h"
+#include <cmath>
 
 uint32_t Piece::Size;
 
@@ -42,26 +43,11 @@ void Piece::Draw(const Texture2D& texture) const
 
 void Piece::DrawFlipped(const Texture2D& texture) const
 {
-	/*float squareSize = m_BoardBounds.width / 8.0f;
-	float pieceOffset = squareSize - Size;
-	float xOffset = 2 * m_BoardBounds.x - squareSize + pieceOffset;
-	float yOffset = 2 * m_BoardBounds.y - squareSize + pieceOffset;
-
+	float squareSize = std::floor(m_BoardBounds.width / 8.0f);
 	Vector2 pos =
 	{
-		m_BoardBounds.width - m_Position.x + xOffset,
-		m_BoardBounds.height - m_Position.y + yOffset
-	};
-	float scale = (float)Size / (float)texture.width;
-	DrawTextureEx(texture, pos, 0.0f, scale, WHITE);*/
-
-	float squareSize = m_BoardBounds.width / 8.0f;
-	float pieceOffset = (squareSize - Size) * 0.5f;
-
-	Vector2 pos =
-	{
-		2 * m_BoardBounds.x + m_BoardBounds.width - m_Position.x - squareSize,
-		2 * m_BoardBounds.y + m_BoardBounds.height - m_Position.y - squareSize
+		2 * m_BoardBounds.x + 7 * std::floor(m_BoardBounds.width / 8.0f) - m_Position.x,
+		2 * m_BoardBounds.y + 7 * std::floor(m_BoardBounds.width / 8.0f) - m_Position.y
 	};
 	float scale = (float)Size / (float)texture.width;
 	DrawTextureEx(texture, pos, 0.0f, scale, WHITE);

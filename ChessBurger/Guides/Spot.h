@@ -19,10 +19,11 @@ public:
 	{
 		if (m_Flip)
 		{
+			float size = std::floor(boardBounds.width / 8.0f);
 			Vector2 pos =
 			{
-				boardBounds.width - m_Position.x + 2 * boardBounds.x,
-				boardBounds.height - m_Position.y + 2 * boardBounds.y
+				2 * boardBounds.x + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.x,
+				2 * boardBounds.y + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.y
 			};
 			DrawCircle(pos.x, pos.y, Size / 2.0f * SPOT_SIZE_P, m_Color);
 		}
