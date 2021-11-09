@@ -30,7 +30,7 @@ void AnalysisBoard::Update()
 		Vector2 fromPosition = Vector2{ (fromSquare.x + 0.5f) * m_SquareSize + m_BoardBounds.x, (fromSquare.y + 0.5f) * m_SquareSize + m_BoardBounds.y };
 		Vector2 toSquare = _ToRealSquare(bestMove.substr(2, 2));
 		Vector2 toPosition = Vector2{ (toSquare.x + 0.5f) * m_SquareSize + m_BoardBounds.x, (toSquare.y + 0.5f) * m_SquareSize + m_BoardBounds.y };
-		m_BestMoveArrow = Arrow(fromPosition, toPosition, fromSquare, toSquare, Color{ 0, 143, 21, 180 }, m_Flipped);
+		m_BestMoveArrow = Arrow(fromPosition, toPosition, fromSquare, toSquare, Color{ 0, 143, 21, (unsigned char)(GameData::ArrowOpacity * 255) }, m_Flipped);
 	}
 
 	//Update UI elements

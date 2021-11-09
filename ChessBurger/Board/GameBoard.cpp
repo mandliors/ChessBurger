@@ -9,8 +9,8 @@ GameBoard::GameBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
 	m_BlackName = "Computer";
 	m_ComputerThinkSeconds = (double)GetRandomValue(COMPUTER_THINK_SECONDS_MIN * 10, COMPUTER_THINK_SECONDS_MAX * 10) / 10.0;
 	GameData::CurrentEngine->SetAnalyseMode(false);
-	//GameData::CurrentEngine->SendCommand("setoption name UCI_LimitStrength value true");
-	//GameData::CurrentEngine->SendCommand("setoption name UCI_Elo value 300");
+	GameData::CurrentEngine->SendCommand("setoption name UCI_LimitStrength value true");
+	GameData::CurrentEngine->SendCommand("setoption name UCI_Elo value 1350");
 	GameData::CurrentEngine->Start();
 }
 

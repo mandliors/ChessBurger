@@ -5,9 +5,8 @@
 
 ColorBuffer Game::DefaultColorBuffer =
 {
-	Color{ 181, 136, 99, 255 },    Color{ 240, 217, 181, 255 },
 	Color{ 245, 245, 245, 255 }, Color{ 250, 250, 250, 255 }, Color{ 80, 80, 80, 255 },    Color{ 230, 230, 230, 255 },
-	Color{ 60, 60, 60, 255 },    Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 },
+	Color{ 60, 60, 60, 255 },    Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 }
 };
 
 Game::Game(GameState state)

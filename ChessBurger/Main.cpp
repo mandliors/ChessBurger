@@ -5,7 +5,7 @@
 
 int main()
 {
-	SetConfigFlags(FLAG_MSAA_4X_HINT);
+	//SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(600, 400, "ChessBurger");
 	SetWindowState(FLAG_WINDOW_UNDECORATED);
 	Game::CenterScreen();
@@ -14,7 +14,7 @@ int main()
 	
 	//Load GUI
 	GameData::GameFont = LoadFontEx("assets/OpenSans.ttf", 70, NULL, -1);
-	SetTextureFilter(GameData::GameFont.texture, FILTER_BILINEAR);
+	SetTextureFilter(GameData::GameFont.texture, TEXTURE_FILTER_BILINEAR);
 	GuiLoadStyle("assets/style.rgs");
 
 	//Loading screen

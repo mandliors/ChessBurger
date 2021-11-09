@@ -1,7 +1,7 @@
 # Setup the project and settings
 project(raylib C)
-set(PROJECT_VERSION 3.7.0)
-set(API_VERSION 370)
+set(PROJECT_VERSION 4.0.0)
+set(API_VERSION 400)
 
 include(GNUInstallDirs)
 include(JoinPaths)
@@ -30,11 +30,11 @@ set(raylib_public_headers
 
 # Sources to be compiled
 set(raylib_sources
-    core.c
-    models.c
-    shapes.c
-    text.c
-    textures.c
+    rcore.c
+    rmodels.c
+    rshapes.c
+    rtext.c
+    rtextures.c
     utils.c
     )
 

@@ -4,12 +4,15 @@
 #include "extras/raygui.h"
 #include <cmath>
 
+#include <iostream>
+
 std::unordered_map<PieceType, char> IBoard::FEN_Codes;
 std::unordered_map<char, PieceType> IBoard::FEN_Codes_Backwards;
 
 IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
-	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_WhiteName("Player 1"), m_Side(0), m_AnalyseMode(false), m_BlackName("Player 2"), m_MoveIndex(-1), m_SelectedMoves({}), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_ColorBuffer(colorBuffer), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false)
+	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_WhiteName("Player 1"), m_Side(0), m_AnalyseMode(false), m_BlackName("Player 2"), m_MoveIndex(-1), m_SelectedMoves({}), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{ -1, -1 }), m_MouseDownPosition(Vector2{ -1, -1 }), m_Result(Result::NONE), m_ColorBuffer(colorBuffer), m_DarkAvarage(Color{ 0, 0, 0, 0 }), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false)
 {
+	//Load piece textures
 	m_Pieces[0]  = LoadTexture("assets/themes/wpawn.png");   SetTextureFilter(m_Pieces[0],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[0]);
 	m_Pieces[1]  = LoadTexture("assets/themes/wknight.png"); SetTextureFilter(m_Pieces[1],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[1]);
 	m_Pieces[2]  = LoadTexture("assets/themes/wbishop.png"); SetTextureFilter(m_Pieces[2],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[2]);
@@ -22,6 +25,73 @@ IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
 	m_Pieces[9]  = LoadTexture("assets/themes/brook.png");	 SetTextureFilter(m_Pieces[9],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[9]);
 	m_Pieces[10] = LoadTexture("assets/themes/bqueen.png");	 SetTextureFilter(m_Pieces[10], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[10]);
 	m_Pieces[11] = LoadTexture("assets/themes/bking.png");	 SetTextureFilter(m_Pieces[11], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[11]);
+
+	//Create arrow head texture
+	int size = 500;
+	float hScale = 0.866f;
+	Image headImg = GenImageColor(size, size, Color{ 0, 0, 0, 0 });
+	for (float i = 0; i < size * 0.5f; i++)
+	{
+		for (float j = 0; j < (i + 1) * hScale; j++)
+		{
+			ImageDrawPixel(&headImg, 2 * j, i, WHITE);
+			ImageDrawPixel(&headImg, 2 * j + 1, i, WHITE);
+		}
+	}
+	for (float i = 0; i < size * 0.5f; i++)
+	{
+		for (float j = 0; j < (i + 1) * hScale; j++)
+		{
+			ImageDrawPixel(&headImg, 2 * j, size - i - 1, WHITE);
+			ImageDrawPixel(&headImg, 2 * j + 1, size - i - 1, WHITE);
+		}
+	}
+	Arrow::Head = LoadTextureFromImage(headImg);
+	UnloadImage(headImg);
+
+	//Load board theme
+	Image darkImage = GenImageColor(200, 200, Color{ 181, 136, 99, 255 });
+	m_Dark = LoadTextureFromImage(darkImage);
+	UnloadImage(darkImage);
+	Image lightImage = GenImageColor(200, 200, Color{ 240, 217, 181, 255 });
+	m_Light = LoadTextureFromImage(lightImage);
+	UnloadImage(lightImage);
+
+	//Calculate avarage colours
+	Image darkImg = LoadImageFromTexture(m_Dark);
+	Color* darkColors = LoadImageColors(darkImage);
+	double pixelCount = darkImg.width * darkImg.height;
+	double r = 0, g = 0, b = 0, a = 0;
+	for (int i = 0; i < pixelCount; i++)
+	{
+		r += (double)darkColors[i].r;
+		g += (double)darkColors[i].g;
+		b += (double)darkColors[i].b;
+		a += (double)darkColors[i].a;
+	}
+	m_DarkAvarage.r = r / pixelCount;
+	m_DarkAvarage.g = g / pixelCount;
+	m_DarkAvarage.b = b / pixelCount;
+	m_DarkAvarage.a = a / pixelCount;
+	UnloadImageColors(darkColors);
+	UnloadImage(darkImg);
+	Image lightImg = LoadImageFromTexture(m_Light);
+	Color* lightColors = LoadImageColors(lightImg);
+	pixelCount = lightImg.width * lightImg.height;
+	r = 0, g = 0, b = 0, a = 0;
+	for (int i = 0; i < pixelCount; i++)
+	{
+		r += (double)lightColors[i].r;
+		g += (double)lightColors[i].g;
+		b += (double)lightColors[i].b;
+		a += (double)lightColors[i].a;
+	}
+	m_LightAvarage.r = r / pixelCount;
+	m_LightAvarage.g = g / pixelCount;
+	m_LightAvarage.b = b / pixelCount;
+	m_LightAvarage.a = a / pixelCount;
+	UnloadImageColors(lightColors);
+	UnloadImage(lightImg);
 
 	FEN_Codes =
 	{
@@ -264,7 +334,7 @@ void IBoard::Update()
 			else
 			{
 				Arrow arrow(Vector2{ (from.x + 0.5f) * m_SquareSize + m_BoardBounds.x, (from.y + 0.5f) * m_SquareSize + m_BoardBounds.y },
-					Vector2{ (to.x + 0.5f) * m_SquareSize + m_BoardBounds.x, (to.y + 0.5f) * m_SquareSize + m_BoardBounds.y }, from, to, Fade(RED, 0.8f), m_Flipped);
+					Vector2{ (to.x + 0.5f) * m_SquareSize + m_BoardBounds.x, (to.y + 0.5f) * m_SquareSize + m_BoardBounds.y }, from, to, Fade(DARKBLUE, GameData::ArrowOpacity), m_Flipped);
 				int index = -1;
 				for (int i = 0; i < m_Arrows.size(); i++)
 				{
@@ -384,17 +454,38 @@ void IBoard::Draw() const
 	DrawTextEx(GameData::GameFont, m_BlackName.c_str(), Vector2{ m_BoardBounds.x + PLAYER_IMAGE_SIZE_A + 10, (m_BoardBounds.y - 60) * 0.5f }, 50, 0, RAYWHITE);
 
 	//Draw board
+	float scale = (float)m_SquareSize / (float)m_Light.height;
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
 		{
 			//Light square
 			if ((i + j) % 2 == 0)
-				DrawRectangle(m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize, m_SquareSize, m_SquareSize, m_ColorBuffer.Light);
+				DrawTextureEx(m_Light, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
 			//Dark square
 			else
-				DrawRectangle(m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize, m_SquareSize, m_SquareSize, m_ColorBuffer.Dark);
+				DrawTextureEx(m_Dark, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
 		}
+	}
+
+	//Draw line numbers and letters
+	float offset = 5.0f;
+	float fontSize = m_SquareSize * 0.3f;
+	for (int i = 0; i < 8; i++)
+	{
+		if (i % 2 == 0)
+			DrawTextEx(GameData::GameFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, m_DarkAvarage);
+		else
+			DrawTextEx(GameData::GameFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, m_LightAvarage);
+	}
+	for (int i = 0; i < 8; i++)
+	{
+		std::string letter = std::string(1, 'a' + (char)i);
+		float width = MeasureTextEx(GameData::GameFont, letter.c_str(), fontSize, 0.0f).x;
+		if (i % 2 == 0)
+			DrawTextEx(GameData::GameFont, letter.c_str(), Vector2{m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, m_LightAvarage);
+		else
+			DrawTextEx(GameData::GameFont, letter.c_str(), Vector2{m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, m_DarkAvarage);
 	}
 
 	//Draw highlights
@@ -455,6 +546,10 @@ IBoard::~IBoard()
 
 	for (int i = 0; i < 12; i++)
 		UnloadTexture(m_Pieces[i]);
+
+	UnloadTexture(Arrow::Head);
+	UnloadTexture(m_Dark);
+	UnloadTexture(m_Light);
 }
 
 void IBoard::Flip()
@@ -538,12 +633,16 @@ void IBoard::Reset(bool resetEnginePosition)
 	m_Moves.clear();
 	m_MovesSN.clear();
 	m_MoveIndex = -1;
-	_GetLegalMoves(m_SideToMove);
+	if (resetEnginePosition)
+		_GetLegalMoves(m_SideToMove);
 
 	m_Result = Result::NONE;
 
-	m_SelectedPiece = nullptr;
-	m_SelectedMoves.clear();
+	if (resetEnginePosition)
+	{
+		m_SelectedPiece = nullptr;
+		m_SelectedMoves.clear();
+	}
 
 	if (GameData::CurrentEngine && resetEnginePosition)
 		GameData::CurrentEngine->SetPosition(_GetFEN());
@@ -703,7 +802,7 @@ void IBoard::Clear()
 
 bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated)
 {
-	//Move should overwrite current move or should not be made
+	//Move should overwrite current move or should not be played
 	if (m_MoveIndex != m_Moves.size() - 1)
 	{
 		//AnalyseMode, overwriting is allowed
@@ -719,19 +818,30 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 					m_Moves.resize(m_MoveIndex + 2); m_MovesSN.resize(m_MoveIndex + 2); //TEMPORARY
 					m_Moves[m_MoveIndex + 1] = move; m_MovesSN[m_MoveIndex + 1] = move;	//TEMPORARY
 					m_MoveIndex++;
+					_ReloadBoard();
+				}
+				else
+				{
+					if (m_DraggedPiece)
+					{
+						m_DraggedPiece->SetDrag(false);
+						m_DraggedPiece = nullptr;
+					}
 				}
 			}
 			else
+			{
 				m_MoveIndex++;
-
-			m_SideToMove = !m_SideToMove;
-			_ReloadBoard();
+				_ReloadBoard();
+			}
 		}
 		//Move is not made, jump to the end of the line
 		else
 		{
+			int8_t sideToMove = (m_SideToMove + m_Moves.size() - m_MoveIndex + 1) % 2;
 			m_MoveIndex = m_Moves.size() - 1;
 			_ReloadBoard();
+			m_SideToMove = sideToMove;
 			m_Highlights.clear();
 			m_Arrows.clear();
 			return false;
@@ -891,7 +1001,7 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 	m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
 	m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
 	piece = &m_Board[(int)toSquare.y][(int)toSquare.x];
-
+	
 	//Update king pointers if necessary
 	if (piece->GetType() == PieceType::W_KING)
 		m_WhiteKing = piece;
@@ -1845,9 +1955,6 @@ void IBoard::_ReloadBoard()
 		m_Moves.push_back(movesBackup[i]);
 		m_MovesSN.push_back(movesSNBackup[i]);
 	}
-
-	if (!m_AnalyseMode)
-		m_SideToMove = sideToMoveBackup;
 
 	//Check winner
 	_GetLegalMoves(m_SideToMove);

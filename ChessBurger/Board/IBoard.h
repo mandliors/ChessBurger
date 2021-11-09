@@ -16,8 +16,6 @@
 
 struct ColorBuffer
 {
-	Color Dark;
-	Color Light;
 	Color FgNormal;
 	Color FgHovered;
 	Color FgFocused;
@@ -97,7 +95,11 @@ protected:
 	Vector2 m_MouseDownPosition;
 	Rectangle m_BoardBounds;
 	Texture2D m_Pieces[12];
+	Texture2D m_Dark;
+	Texture2D m_Light;
 	ColorBuffer m_ColorBuffer;
+	Color m_DarkAvarage;
+	Color m_LightAvarage;
 	uint32_t m_SquareSize;
 	Piece* m_DraggedPiece;
 	Piece* m_SelectedPiece;
