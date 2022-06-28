@@ -1,8 +1,12 @@
-#include "GameData.h"
-#include "Board/IBoard.h"
 #include "raylib.h"
+#include "GameData.h"
+#include "Game/Game.h"
+#include "Board/IBoard.h"
 
-Font GameData::GameFont;
+Font GameData::MainFont;
+ColorBuffer GameData::Colors;
+TextureBuffer GameData::Textures;
+SoundBuffer GameData::Sounds;
 std::vector<Engine*> GameData::Engines;
 Engine* GameData::CurrentEngine;
 uint32_t GameData::EngineLines = 3;

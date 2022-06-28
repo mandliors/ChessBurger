@@ -1,17 +1,15 @@
 #include "extras/raygui.h"
 #include "GameBoard.h"
-#include "GameData/GameData.h"
+#include "Game/Game.h"
 
-GameBoard::GameBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
-	: IBoard(colorBuffer, bounds), m_WhiteClock(5 * 60.0), m_BlackClock(5 * 60.0), m_ComputerThinkClock(), m_ComputerSide(1), m_ComputerThinkSeconds(1.0), m_WhiteClockBounds({}), m_BlackClockBounds({})
+GameBoard::GameBoard(const Rectangle& bounds, Game* owner)
+	: IBoard(bounds, owner), m_WhiteClock(5 * 60.0), m_BlackClock(5 * 60.0), m_ComputerSide(1), m_WhiteClockBounds({}), m_BlackClockBounds({})
 {
-	m_AnalyseMode = false;
+	m_WhiteName = "Player";
 	m_BlackName = "Computer";
-	m_ComputerThinkSeconds = (double)GetRandomValue(COMPUTER_THINK_SECONDS_MIN * 10, COMPUTER_THINK_SECONDS_MAX * 10) / 10.0;
-	GameData::CurrentEngine->SetAnalyseMode(false);
-	GameData::CurrentEngine->SendCommand("setoption name UCI_LimitStrength value true");
-	GameData::CurrentEngine->SendCommand("setoption name UCI_Elo value 1350");
-	GameData::CurrentEngine->Start();
+	m_ShowNametag = true;
+	//GameData::CurrentEngine->SendCommand("setoption name UCI_LimitStrength value true");
+	//GameData::CurrentEngine->SendCommand("setoption name UCI_Elo value 1350");
 }
 
 void GameBoard::Update()
@@ -24,44 +22,45 @@ void GameBoard::Update()
 		//White moves, check clock time
 		if (m_SideToMove == 0)
 		{
-			m_WhiteClock.Start();
-			m_BlackClock.Pause();
 			if (m_WhiteClock.GetSecondsLeft() <= 0)
 			{
 				m_WhiteClock.Pause();
 				m_Result = Result::BLACK_WIN;
 			}
+			else
+			{
+				m_WhiteClock.Start();
+				m_BlackClock.Pause();
+			}
 		}
 		//Black moves, check clock time
-		else
+		else if (m_SideToMove == 1)
 		{
-			m_BlackClock.Start();
-			m_WhiteClock.Pause();
 			if (m_BlackClock.GetSecondsLeft() <= 0)
 			{
 				m_BlackClock.Pause();
 				m_Result = Result::WHITE_WIN;
 			}
+			else
+			{
+				m_BlackClock.Start();
+				m_WhiteClock.Pause();
+			}
 		}
-
 		//Computer should move
 		if (m_SideToMove == m_ComputerSide)
 		{
-			m_ComputerThinkClock.SetMaxSeconds(m_ComputerThinkSeconds);
-			m_ComputerThinkClock.Start();
-			if (m_ComputerThinkClock.GetSecondsLeft() <= 0.0)
+			std::string& bestMove = GameData::CurrentEngine->GetBestMove();
+			if (bestMove != "")
 			{
-				_Move(GameData::CurrentEngine->GetAnalysisData().BestLines[0][0], true);
-				m_ComputerThinkClock.Pause();
-				m_ComputerThinkClock.Reset();
-				m_ComputerThinkSeconds = (double)GetRandomValue(COMPUTER_THINK_SECONDS_MIN * 10, COMPUTER_THINK_SECONDS_MAX * 10) / 10.0;
+				if (!IBoard::_Move(bestMove, true))
+					std::invalid_argument("Computer made an illegal move");
+				bestMove = "";
 			}
 		}
-
 		//Update clocks
 		m_WhiteClock.Update();
 		m_BlackClock.Update();
-		m_ComputerThinkClock.Update();
 	}
 }
 
@@ -79,22 +78,31 @@ void GameBoard::Draw() const
 	IBoard::Draw();
 
 	//Draw timers
-	DrawRectangleRounded(m_WhiteClockBounds, 0.2f, 4, m_ColorBuffer.BgFocused);
+	DrawRectangleRounded(m_WhiteClockBounds, 0.2f, 4, GameData::Colors.BgFocused);
 	std::string clockString = m_WhiteClock.GetString();
-	int width = MeasureTextEx(GameData::GameFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
-	DrawTextEx(GameData::GameFont, clockString.c_str(), Vector2{ m_WhiteClockBounds.x + m_WhiteClockBounds.width - width - 10, m_WhiteClockBounds.y + (m_WhiteClockBounds.height - CLOCK_TEXT_SIZE_A) * 0.5f }, CLOCK_TEXT_SIZE_A, 0, m_ColorBuffer.BgFocused2);
+	int width = MeasureTextEx(GameData::MainFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
+	DrawTextEx(GameData::MainFont, clockString.c_str(), Vector2{ m_WhiteClockBounds.x + m_WhiteClockBounds.width - width - 10, m_WhiteClockBounds.y + (m_WhiteClockBounds.height - CLOCK_TEXT_SIZE_A) * 0.5f }, CLOCK_TEXT_SIZE_A, 0, GameData::Colors.BgFocused2);
 	
-	DrawRectangleRounded(m_BlackClockBounds, 0.2f, 4, m_ColorBuffer.BgFocused2);
+	DrawRectangleRounded(m_BlackClockBounds, 0.2f, 4, GameData::Colors.BgFocused2);
 	clockString = m_BlackClock.GetString();
-	width = MeasureTextEx(GameData::GameFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
-	DrawTextEx(GameData::GameFont, clockString.c_str(), Vector2{ m_BlackClockBounds.x + m_BlackClockBounds.width - width - 10, m_BlackClockBounds.y + (m_BlackClockBounds.height - CLOCK_TEXT_SIZE_A) * 0.5f }, CLOCK_TEXT_SIZE_A, 0, m_ColorBuffer.BgFocused);
+	width = MeasureTextEx(GameData::MainFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
+	DrawTextEx(GameData::MainFont, clockString.c_str(), Vector2{ m_BlackClockBounds.x + m_BlackClockBounds.width - width - 10, m_BlackClockBounds.y + (m_BlackClockBounds.height - CLOCK_TEXT_SIZE_A) * 0.5f }, CLOCK_TEXT_SIZE_A, 0, GameData::Colors.BgFocused);
 	
 	//Make clock look disabled
 	if (m_SideToMove == 0)
 		DrawRectangleRounded(m_BlackClockBounds, 0.2f, 4, Fade(BLACK, 0.5f));
 	else
 		DrawRectangleRounded(m_WhiteClockBounds, 0.2f, 4, Fade(BLACK, 0.5f));
-		
+}
+
+bool GameBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
+{
+	if (IBoard::_Move(fromSquare, toSquare, animated))
+	{
+		GameData::CurrentEngine->SearchMove(m_WhiteClock.GetSecondsLeft() * 1000, m_BlackClock.GetSecondsLeft() * 1000, 0, 0);
+		return true;
+	}
+	else return false;
 }
 
 void GameBoard::Reset(bool resetEnginePosition)

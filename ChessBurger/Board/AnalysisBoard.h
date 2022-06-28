@@ -22,10 +22,12 @@
 #define BESTLINES_UITEXT_SIZE_RATIO 1.2f
 #define BESTLINES_UPDATES_PER_SEC 30
 
+class Game;
+
 class AnalysisBoard : public IBoard
 {
 public:
-	AnalysisBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds);
+	AnalysisBoard(const Rectangle& bounds, Game* owner);
 	~AnalysisBoard();
 
 	void Update() override;
@@ -50,13 +52,13 @@ private:
 	uint32_t m_FrameCounter;
 
 	//EvalBar
-	Rectangle EvalBar_Bounds;
+	Rectangle m_EvalBar_Bounds;
 
 	//Movelist
-	Rectangle Movelist_Bounds;
-	std::vector<UIText> Movelist_UITexts;
+	Rectangle m_Movelist_Bounds;
+	std::vector<UIText> m_Movelist_UITexts;
 
 	//BestLines
-	Rectangle BestLines_Bounds;
-	std::vector<std::vector<UIText>> BestLines_UITexts;
+	Rectangle m_BestLines_Bounds;
+	std::vector<std::vector<UIText>> m_BestLines_UITexts;
 };

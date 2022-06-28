@@ -5,10 +5,12 @@
 #include <time.h>
 #include <algorithm>
 
-#define BUFFER_SIZE 8192
+#ifdef ENGINE_DUMP
+	#include <iostream>
+#endif
 
 Engine::Engine(const std::string& path, const std::string& name)
-	: m_Name(name), m_Working(true), m_Read(false), m_WhiteToMove(true), m_AnalysisData({}), m_Position(""), m_hProcess(NULL), m_hThread(NULL), m_PipinW(NULL), m_PipinR(NULL), m_PipoutW(NULL), m_PipoutR(NULL)
+	: m_Name(name), m_Working(true), m_Mode(Mode::WAIT), m_WhiteToMove(true), m_AnalysisData({}), m_BestMove(""), m_Position(""), m_hProcess(NULL), m_hThread(NULL), m_PipinW(NULL), m_PipinR(NULL), m_PipoutW(NULL), m_PipoutR(NULL)
 {
 	SECURITY_ATTRIBUTES securityAttribs = { 0 };
 	securityAttribs.nLength = sizeof(securityAttribs);
@@ -30,7 +32,6 @@ Engine::Engine(const std::string& path, const std::string& name)
 	m_hProcess = processInfo.hProcess;
 	m_hThread = processInfo.hThread;
 
-	SetPosition("");
 	m_AnalysisData.BestLines.resize(GameData::EngineLines);
 	m_AnalysisData.BestLinesSN.resize(GameData::EngineLines);
 	m_AnalysisData.Evaluations.resize(GameData::EngineLines);
@@ -63,20 +64,39 @@ bool Engine::Init()
 		return false;
 	}
 	_WritePipe("setoption name MultiPV value " + std::to_string(GameData::EngineLines));
-	_WritePipe("ucinewgame");
-	_WritePipe("position startpos");
 
 	m_Thread = std::thread([this]() { this->_Worker(); });
-
 	return true;
 }
 
-void Engine::Start()
+void Engine::ResetForAnalyzing()
 {
-	if (!m_Read)
+	if (m_Mode != Mode::ANALYZE)
 	{
-		m_Read = true;
-		_WritePipe("go infinite");
+		m_Mode = Mode::ANALYZE;
+		_WritePipe("ucinewgame");
+		_WritePipe("position startpos");
+		SetAnalyseMode(true);
+	}
+}
+
+void Engine::ResetForPlaying()
+{
+	if (m_Mode != Mode::PLAY)
+	{
+		m_Mode = Mode::PLAY;
+		_WritePipe("ucinewgame");
+		_WritePipe("position startpos");
+		SetAnalyseMode(false);
+	}
+}
+
+void Engine::ResetForWaiting()
+{
+	if (m_Mode != Mode::WAIT)
+	{
+		m_Mode = Mode::WAIT;
+		_WritePipe("stop");
 	}
 }
 
@@ -85,8 +105,7 @@ void Engine::SetPosition(const std::string& fen)
 	m_AnalysisData.Depth = 0;
 	m_Position = fen;
 	m_WhiteToMove = fen.find('w') == -1 ? false : true;
-
-	if (m_Read)
+	if (m_Mode == Mode::ANALYZE)
 	{
 		_WritePipe("stop");
 		_WritePipe("position fen " + m_Position);
@@ -100,9 +119,8 @@ void Engine::SetPositionWithMoves(const std::string& moves)
 {
 	m_AnalysisData.Depth = 0;
 	m_Position = moves;
-	m_WhiteToMove = (std::count(moves.begin(), moves.end(), ' ') + 1) % 2;
-	
-	if (m_Read)
+	m_WhiteToMove = (std::count(moves.begin(), moves.end(), ' ') + 1) % 2;	
+	if (m_Mode == Mode::ANALYZE)
 	{
 		_WritePipe("stop");
 		_WritePipe("position startpos moves " + m_Position);
@@ -115,9 +133,19 @@ void Engine::SetPositionWithMoves(const std::string& moves)
 void Engine::SetAnalyseMode(bool value)
 {
 	if (value)
-		_WritePipe("setoption name UCI_AnalyseMode value false");
-	else
 		_WritePipe("setoption name UCI_AnalyseMode value true");
+	else
+		_WritePipe("setoption name UCI_AnalyseMode value false");
+}
+
+void Engine::GoInfinite()
+{
+	_WritePipe("go infinite");
+}
+
+void Engine::SearchMove(uint32_t wtime, uint32_t btime, uint32_t winc, uint32_t binc)
+{
+	_WritePipe("go wtime " + std::to_string(wtime) + " btime " + std::to_string(btime) + " winc " + std::to_string(winc) + " binc " + std::to_string(binc));
 }
 
 void Engine::SendCommand(const std::string& command)
@@ -127,7 +155,6 @@ void Engine::SendCommand(const std::string& command)
 
 void Engine::Stop()
 {
-	m_Read = false;
 	_WritePipe("stop");
 }
 
@@ -141,54 +168,77 @@ const Engine::AnalysisData& Engine::GetAnalysisData() const
 	return m_AnalysisData;
 }
 
+std::string& Engine::GetBestMove()
+{
+	return m_BestMove;
+}
+
 void Engine::_Worker()
 {
 	while (m_Working)
 	{
-		if (m_Read)
+		if (m_Mode != Mode::WAIT)
 		{
 			std::lock_guard<std::mutex> lock(GameData::EngineMutex);
 			std::string message = _ReadPipe();
 			std::vector<std::string> messageLines = _Split(message, '\n');
-			
-			for (int i = 0; i < messageLines.size(); i++)
+#ifdef ENGINE_DUMP
+			if (message != "no message")
+				std::cout << message;
+#endif			
+			if (m_Mode == Mode::ANALYZE)
 			{
-				message = messageLines[i];
-				if (message.find("currmove") != -1)
-					continue;
-
-				//Read depth
-				int depthIdx = message.find("depth");
-				if (depthIdx != -1)
-					m_AnalysisData.Depth = stoi(_GetSubstringUntilChar(message, depthIdx + 6, ' '));
-
-				//Read evaluation and line
-				int mpvIdx = message.find("multipv");
-				if (mpvIdx != -1)
+				for (int i = 0; i < messageLines.size(); i++)
 				{
-					int rank = stoi(_GetSubstringUntilChar(message, mpvIdx + 8, ' '));
+					message = messageLines[i];
+					if (message.find("currmove") != -1)
+						continue;
 
-					//Read evaluation
-					int evalIdx = message.find("score cp");
-					if (evalIdx != -1)
+					//Read depth
+					int depthIdx = message.find("depth");
+					if (depthIdx != -1)
+						m_AnalysisData.Depth = stoi(_GetSubstringUntilChar(message, depthIdx + 6, ' '));
+
+					//Read evaluation and line
+					int mpvIdx = message.find("multipv");
+					if (mpvIdx != -1)
 					{
-						float eval = stof(_GetSubstringUntilChar(message, evalIdx + 9, ' ')) / 100.0f * (m_WhiteToMove * 2 - 1);
-						m_AnalysisData.Evaluations[rank - 1] = (eval >= 0 ? "+" : "-") + Utils::Round(std::abs(eval), 2);
+						int rank = stoi(_GetSubstringUntilChar(message, mpvIdx + 8, ' '));
+
+						//Read evaluation
+						int evalIdx = message.find("score cp");
+						if (evalIdx != -1)
+						{
+							float eval = stof(_GetSubstringUntilChar(message, evalIdx + 9, ' ')) / 100.0f * (m_WhiteToMove * 2 - 1);
+							m_AnalysisData.Evaluations[rank - 1] = (eval >= 0 ? "+" : "-") + Utils::Round(std::abs(eval), 2);
+						}
+						else
+						{
+							evalIdx = message.find("score mate");
+							float eval = stoi(_GetSubstringUntilChar(message, evalIdx + 11, ' ')) * (m_WhiteToMove * 2 - 1);
+							m_AnalysisData.Evaluations[rank - 1] = (eval >= 0 ? "+M" : "-M") + std::to_string((int)std::abs(eval));
+						}
+
+						//Read line
+						int pv = message.rfind("pv");
+						if (pv != -1)
+						{
+							std::string line = _GetSubstringUntilChar(message, pv + 3, '\r');
+							m_AnalysisData.BestLines[rank - 1] = _Split(line, ' ');
+						}
 					}
-					else
-					{
-						evalIdx = message.find("score mate");
-						float eval = stoi(_GetSubstringUntilChar(message, evalIdx + 11, ' ')) * (m_WhiteToMove * 2 - 1);
-						m_AnalysisData.Evaluations[rank - 1] = (eval >= 0 ? "+M" : "-M") + std::to_string((int)std::abs(eval));
-					}
-					
-					//Read line
-					int pv = message.rfind("pv");
-					if (pv != -1)
-					{
-						std::string line = _GetSubstringUntilChar(message, pv + 3, '\r');
-						m_AnalysisData.BestLines[rank - 1] = _Split(line, ' ');
-					}
+				}
+			}
+			else if (m_Mode == Mode::PLAY)
+			{
+				for (int i = 0; i < messageLines.size(); i++)
+				{
+					message = messageLines[i];
+					int bestMoveIdx = message.find("bestmove");
+					if (bestMoveIdx == -1)
+						continue;
+					m_BestMove = _GetSubstringUntilChar(message, bestMoveIdx + 9, ' ');
+					if (m_BestMove == "") m_BestMove = _GetSubstringUntilChar(message, bestMoveIdx + 9, '\r');
 				}
 			}
 		}
@@ -199,6 +249,9 @@ void Engine::_Worker()
 void Engine::_WritePipe(const std::string& message) const
 {
 	DWORD write;
+#ifdef ENGINE_DUMP
+	std::cout << "> " << message << std::endl;
+#endif
 	WriteFile(m_PipinW, (message + "\n").c_str(), message.size() + 1, &write, NULL);
 }
 
@@ -241,6 +294,7 @@ bool Engine::_WaitForResponse(const std::string& message, uint32_t maxms) const
 
 std::string Engine::_GetSubstringUntilChar(const std::string& str, int fromIdx, char c) const
 {
+	if (str.substr(fromIdx, str.size() - fromIdx).find(c) == -1) return "";
 	int endIdx = fromIdx;
 	while (str[endIdx] != c) endIdx++;
 	return str.substr(fromIdx, endIdx - fromIdx);

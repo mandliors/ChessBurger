@@ -10,10 +10,12 @@
 #define COMPUTER_THINK_SECONDS_MIN 0.5
 #define COMPUTER_THINK_SECONDS_MAX 3.0
 
+class Game;
+
 class GameBoard : public IBoard
 {
 public:
-	GameBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds);
+	GameBoard(const Rectangle& bounds, Game* owner);
 
 	void Update() override;
 	void UpdateBounds() override;
@@ -21,12 +23,13 @@ public:
 
 	virtual void Reset(bool resetEnginePosition = true) override;
 
+protected:
+	bool _Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated = false, bool updateEnginePosition = true) override;
+
 private:
 	Clock m_WhiteClock;
 	Clock m_BlackClock;
-	Clock m_ComputerThinkClock;
 	int8_t m_ComputerSide;
-	double m_ComputerThinkSeconds;
 	Rectangle m_WhiteClockBounds;
 	Rectangle m_BlackClockBounds;
 };

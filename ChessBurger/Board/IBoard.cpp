@@ -1,31 +1,19 @@
 #include "IBoard.h"
 #include "GameData/GameData.h"
+#include "Game/Game.h"
 #include "Utilities/Utilities.h"
 #include "extras/raygui.h"
 #include <cmath>
+#include <algorithm>
 
 #include <iostream>
 
 std::unordered_map<PieceType, char> IBoard::FEN_Codes;
 std::unordered_map<char, PieceType> IBoard::FEN_Codes_Backwards;
 
-IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
-	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_WhiteName("Player 1"), m_Side(0), m_AnalyseMode(false), m_BlackName("Player 2"), m_MoveIndex(-1), m_SelectedMoves({}), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{ -1, -1 }), m_MouseDownPosition(Vector2{ -1, -1 }), m_Result(Result::NONE), m_ColorBuffer(colorBuffer), m_DarkAvarage(Color{ 0, 0, 0, 0 }), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false)
+IBoard::IBoard(const Rectangle& bounds, Game* owner)
+	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_AnalyseMode(false), m_WhiteName("Player 1"), m_Side(0), m_BlackName("Player 2"), m_EnPassant(""), m_StartingFEN_Movecount(-1), m_MoveIndex(-1), m_SelectedMoves({}), m_StartingFEN(STARTPOS_FEN), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false), m_WhiteShort(true), m_WhiteLong(true), m_BlackShort(true), m_BlackLong(true), m_ShowNametag(false), m_ShowLegalMoves(true), m_OnlyLegalMoves(true), m_Owner(owner)
 {
-	//Load piece textures
-	m_Pieces[0]  = LoadTexture("assets/themes/wpawn.png");   SetTextureFilter(m_Pieces[0],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[0]);
-	m_Pieces[1]  = LoadTexture("assets/themes/wknight.png"); SetTextureFilter(m_Pieces[1],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[1]);
-	m_Pieces[2]  = LoadTexture("assets/themes/wbishop.png"); SetTextureFilter(m_Pieces[2],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[2]);
-	m_Pieces[3]  = LoadTexture("assets/themes/wrook.png");	 SetTextureFilter(m_Pieces[3],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[3]);
-	m_Pieces[4]  = LoadTexture("assets/themes/wqueen.png");	 SetTextureFilter(m_Pieces[4],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[4]);
-	m_Pieces[5]  = LoadTexture("assets/themes/wking.png");	 SetTextureFilter(m_Pieces[5],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[5]);
-	m_Pieces[6]  = LoadTexture("assets/themes/bpawn.png");	 SetTextureFilter(m_Pieces[6],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[6]);
-	m_Pieces[7]  = LoadTexture("assets/themes/bknight.png"); SetTextureFilter(m_Pieces[7],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[7]);
-	m_Pieces[8]  = LoadTexture("assets/themes/bbishop.png"); SetTextureFilter(m_Pieces[8],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[8]);
-	m_Pieces[9]  = LoadTexture("assets/themes/brook.png");	 SetTextureFilter(m_Pieces[9],  TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[9]);
-	m_Pieces[10] = LoadTexture("assets/themes/bqueen.png");	 SetTextureFilter(m_Pieces[10], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[10]);
-	m_Pieces[11] = LoadTexture("assets/themes/bking.png");	 SetTextureFilter(m_Pieces[11], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&m_Pieces[11]);
-
 	//Create arrow head texture
 	int size = 500;
 	float hScale = 0.866f;
@@ -48,50 +36,6 @@ IBoard::IBoard(const ColorBuffer& colorBuffer, const Rectangle& bounds)
 	}
 	Arrow::Head = LoadTextureFromImage(headImg);
 	UnloadImage(headImg);
-
-	//Load board theme
-	Image darkImage = GenImageColor(200, 200, Color{ 181, 136, 99, 255 });
-	m_Dark = LoadTextureFromImage(darkImage);
-	UnloadImage(darkImage);
-	Image lightImage = GenImageColor(200, 200, Color{ 240, 217, 181, 255 });
-	m_Light = LoadTextureFromImage(lightImage);
-	UnloadImage(lightImage);
-
-	//Calculate avarage colours
-	Image darkImg = LoadImageFromTexture(m_Dark);
-	Color* darkColors = LoadImageColors(darkImage);
-	double pixelCount = darkImg.width * darkImg.height;
-	double r = 0, g = 0, b = 0, a = 0;
-	for (int i = 0; i < pixelCount; i++)
-	{
-		r += (double)darkColors[i].r;
-		g += (double)darkColors[i].g;
-		b += (double)darkColors[i].b;
-		a += (double)darkColors[i].a;
-	}
-	m_DarkAvarage.r = r / pixelCount;
-	m_DarkAvarage.g = g / pixelCount;
-	m_DarkAvarage.b = b / pixelCount;
-	m_DarkAvarage.a = a / pixelCount;
-	UnloadImageColors(darkColors);
-	UnloadImage(darkImg);
-	Image lightImg = LoadImageFromTexture(m_Light);
-	Color* lightColors = LoadImageColors(lightImg);
-	pixelCount = lightImg.width * lightImg.height;
-	r = 0, g = 0, b = 0, a = 0;
-	for (int i = 0; i < pixelCount; i++)
-	{
-		r += (double)lightColors[i].r;
-		g += (double)lightColors[i].g;
-		b += (double)lightColors[i].b;
-		a += (double)lightColors[i].a;
-	}
-	m_LightAvarage.r = r / pixelCount;
-	m_LightAvarage.g = g / pixelCount;
-	m_LightAvarage.b = b / pixelCount;
-	m_LightAvarage.a = a / pixelCount;
-	UnloadImageColors(lightColors);
-	UnloadImage(lightImg);
 
 	FEN_Codes =
 	{
@@ -245,51 +189,33 @@ void IBoard::Update()
 	if (IsKeyPressed(KEY_LEFT) && m_MoveIndex > 0)
 	{
 		m_MoveIndex--;
-		_ReloadBoard();
+		_ReloadBoard(false);
 	}
 	else if (IsKeyPressed(KEY_RIGHT) && m_MoveIndex < m_Moves.size() - 1)
 	{
 		m_MoveIndex++;
-		_ReloadBoard();
+		_ReloadBoard(true);
 	}
 	else if (IsKeyPressed(KEY_UP) && m_MoveIndex != 0 && m_Moves.size() > 0)
 	{
 		m_MoveIndex = 0;
-		_ReloadBoard();
+		_ReloadBoard(false);
 	}
 	else if (IsKeyPressed(KEY_DOWN) && m_MoveIndex != m_Moves.size() - 1)
 	{
 		m_MoveIndex = m_Moves.size() - 1;
-		_ReloadBoard();
+		_ReloadBoard(false);
 	}
 
 	//Check copy events
 	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_C))
 	{
 		//Copy PGN
-		if (IsKeyDown(KEY_LEFT_ALT))
+		if (IsKeyDown(KEY_LEFT_SHIFT))
 			SetClipboardText(_GetPGN().c_str());
 		//Copy FEN
 		else
 			SetClipboardText(_GetFEN().c_str());
-	}
-
-	//Paste event
-	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
-	{
-		std::string text = GetClipboardText();
-
-		//Paste PGN
-		if (text.back() == '*')
-		{
-
-		}
-		//Paste FEN
-		else
-		{
-			if (!LoadFEN(text))
-				std::abort();
-		}
 	}
 
 	//Update pieces
@@ -398,19 +324,19 @@ void IBoard::Update()
 
 void IBoard::UpdateBounds()
 {
-	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A;
+	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * m_ShowNametag;
 	//Match height
 	if (boardSize < GetScreenWidth())
 	{
 		float offset = (GetScreenWidth() - boardSize) * 0.5f;
-		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A, boardSize, boardSize };
+		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
 	}
 	//Match width
 	else
 	{
 		boardSize = GetScreenWidth();
-		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A) * 0.5f;
-		m_BoardBounds = Rectangle{ 0, NAMETAG_HEIGHT_A + offset, boardSize, boardSize };
+		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
+		m_BoardBounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
 	}
 	m_SquareSize = boardSize / 8;
 
@@ -443,49 +369,75 @@ void IBoard::UpdateBounds()
 
 void IBoard::Draw() const
 {
-	//Draw player images
-	DrawRectangleRounded(Rectangle{ m_BoardBounds.x, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f, PLAYER_IMAGE_SIZE_A, PLAYER_IMAGE_SIZE_A }, 0.2f, 4, m_ColorBuffer.BgFocused2);
-	DrawRectangleRounded(Rectangle{ m_BoardBounds.x + 1, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f + 1, PLAYER_IMAGE_SIZE_A - 2, PLAYER_IMAGE_SIZE_A - 2 }, 0.2f, 4, m_ColorBuffer.BgFocused);
-	DrawRectangleRounded(Rectangle{ m_BoardBounds.x, (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f, PLAYER_IMAGE_SIZE_A, PLAYER_IMAGE_SIZE_A }, 0.2f, 4, m_ColorBuffer.BgFocused);
-	DrawRectangleRounded(Rectangle{ m_BoardBounds.x + 1, (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f + 1, PLAYER_IMAGE_SIZE_A - 2, PLAYER_IMAGE_SIZE_A - 2 }, 0.2f, 4, m_ColorBuffer.BgFocused2);
+	//Show nametags
+	if (m_ShowNametag)
+	{
+		//Draw player images
+		DrawRectangleRounded(Rectangle{ m_BoardBounds.x, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f, PLAYER_IMAGE_SIZE_A, PLAYER_IMAGE_SIZE_A }, 0.2f, 4, GameData::Colors.BgFocused2);
+		DrawRectangleRounded(Rectangle{ m_BoardBounds.x + 1, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f + 1, PLAYER_IMAGE_SIZE_A - 2, PLAYER_IMAGE_SIZE_A - 2 }, 0.2f, 4, GameData::Colors.BgFocused);
+		DrawRectangleRounded(Rectangle{ m_BoardBounds.x, (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f, PLAYER_IMAGE_SIZE_A, PLAYER_IMAGE_SIZE_A }, 0.2f, 4, GameData::Colors.BgFocused);
+		DrawRectangleRounded(Rectangle{ m_BoardBounds.x + 1, (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f + 1, PLAYER_IMAGE_SIZE_A - 2, PLAYER_IMAGE_SIZE_A - 2 }, 0.2f, 4, GameData::Colors.BgFocused2);
 
-	//Draw nametags
-	DrawTextEx(GameData::GameFont, m_WhiteName.c_str(), Vector2{ m_BoardBounds.x + PLAYER_IMAGE_SIZE_A + 10, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f }, 50, 0, RAYWHITE);
-	DrawTextEx(GameData::GameFont, m_BlackName.c_str(), Vector2{ m_BoardBounds.x + PLAYER_IMAGE_SIZE_A + 10, (m_BoardBounds.y - 60) * 0.5f }, 50, 0, RAYWHITE);
+		//Draw nametags
+		DrawTextEx(GameData::MainFont, m_WhiteName.c_str(), Vector2{ m_BoardBounds.x + PLAYER_IMAGE_SIZE_A + 10, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - PLAYER_IMAGE_SIZE_A) * 0.5f }, 50, 0, RAYWHITE);
+		DrawTextEx(GameData::MainFont, m_BlackName.c_str(), Vector2{ m_BoardBounds.x + PLAYER_IMAGE_SIZE_A + 10, (m_BoardBounds.y - 60) * 0.5f }, 50, 0, RAYWHITE);
+	}
 
 	//Draw board
-	float scale = (float)m_SquareSize / (float)m_Light.height;
+	float scale = (float)m_SquareSize / (float)GameData::Textures.Light.height;
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
 		{
 			//Light square
 			if ((i + j) % 2 == 0)
-				DrawTextureEx(m_Light, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
+				DrawTextureEx(GameData::Textures.Light, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
 			//Dark square
 			else
-				DrawTextureEx(m_Dark, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
+				DrawTextureEx(GameData::Textures.Dark, Vector2{ m_BoardBounds.x + j * m_SquareSize, m_BoardBounds.y + i * m_SquareSize }, 0.0f, scale, WHITE);
 		}
 	}
 
 	//Draw line numbers and letters
 	float offset = 5.0f;
 	float fontSize = m_SquareSize * 0.3f;
-	for (int i = 0; i < 8; i++)
+	if (!m_Flipped)
 	{
-		if (i % 2 == 0)
-			DrawTextEx(GameData::GameFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, m_DarkAvarage);
-		else
-			DrawTextEx(GameData::GameFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, m_LightAvarage);
+		for (int i = 0; i < 8; i++)
+		{
+			if (i % 2 == 0)
+				DrawTextEx(GameData::MainFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, GameData::Colors.DarkAvarage);
+			else
+				DrawTextEx(GameData::MainFont, std::to_string(8 - i).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, GameData::Colors.LightAvarage);
+		}
+		for (int i = 0; i < 8; i++)
+		{
+			std::string letter = std::string(1, 'a' + (char)i);
+			float width = MeasureTextEx(GameData::MainFont, letter.c_str(), fontSize, 0.0f).x;
+			if (i % 2 == 0)
+				DrawTextEx(GameData::MainFont, letter.c_str(), Vector2{ m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, GameData::Colors.LightAvarage);
+			else
+				DrawTextEx(GameData::MainFont, letter.c_str(), Vector2{ m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, GameData::Colors.DarkAvarage);
+		}
 	}
-	for (int i = 0; i < 8; i++)
+	else
 	{
-		std::string letter = std::string(1, 'a' + (char)i);
-		float width = MeasureTextEx(GameData::GameFont, letter.c_str(), fontSize, 0.0f).x;
-		if (i % 2 == 0)
-			DrawTextEx(GameData::GameFont, letter.c_str(), Vector2{m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, m_LightAvarage);
-		else
-			DrawTextEx(GameData::GameFont, letter.c_str(), Vector2{m_BoardBounds.x + (i + 1) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, m_DarkAvarage);
+		for (int i = 0; i < 8; i++)
+		{
+			if (i % 2 == 0)
+				DrawTextEx(GameData::MainFont, std::to_string(i + 1).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, GameData::Colors.DarkAvarage);
+			else
+				DrawTextEx(GameData::MainFont, std::to_string(i + 1).c_str(), Vector2{ m_BoardBounds.x + offset, m_BoardBounds.y + i * m_SquareSize + offset }, fontSize, 0.0f, GameData::Colors.LightAvarage);
+		}
+		for (int i = 0; i < 8; i++)
+		{
+			std::string letter = std::string(1, 'a' + (char)i);
+			float width = MeasureTextEx(GameData::MainFont, letter.c_str(), fontSize, 0.0f).x;
+			if (i % 2 == 0)
+				DrawTextEx(GameData::MainFont, letter.c_str(), Vector2{ m_BoardBounds.x + (8 - i) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, GameData::Colors.DarkAvarage);
+			else
+				DrawTextEx(GameData::MainFont, letter.c_str(), Vector2{ m_BoardBounds.x + (8 - i) * m_SquareSize - offset - width, m_BoardBounds.y + m_BoardBounds.height - offset - fontSize }, fontSize, 0.0f, GameData::Colors.LightAvarage);
+		}
 	}
 
 	//Draw highlights
@@ -506,17 +458,20 @@ void IBoard::Draw() const
 		{
 			const Piece& piece = m_Board[i][j];
 			if (piece.GetType() != PieceType::NONE && !piece.GetDrag())
-				m_Flipped ? piece.DrawFlipped(m_Pieces[(int)piece.GetType()]) : piece.Draw(m_Pieces[(int)piece.GetType()]);
+				m_Flipped ? piece.DrawFlipped(GameData::Textures.Pieces[(int)piece.GetType()]) : piece.Draw(GameData::Textures.Pieces[(int)piece.GetType()]);
 		}
 	}
 
 	//Draw selected moves
-	for (int i = 0; i < m_SelectedMoves.size(); i++)
-		m_SelectedMoves[i].Draw(m_BoardBounds);
+	if (m_ShowLegalMoves)
+	{
+		for (int i = 0; i < m_SelectedMoves.size(); i++)
+			m_SelectedMoves[i].Draw(m_BoardBounds);
+	}
 
 	//Draw dragged move
 	if (m_DraggedPiece)
-		m_DraggedPiece->Draw(m_Pieces[(int)m_DraggedPiece->GetType()]);
+		m_DraggedPiece->Draw(GameData::Textures.Pieces[(int)m_DraggedPiece->GetType()]);
 
 	//Draw arrows
 	for (int i = 0; i < m_Arrows.size(); i++)
@@ -544,12 +499,7 @@ IBoard::~IBoard()
 	if (GameData::CurrentEngine)
 		GameData::CurrentEngine->Stop();
 
-	for (int i = 0; i < 12; i++)
-		UnloadTexture(m_Pieces[i]);
-
 	UnloadTexture(Arrow::Head);
-	UnloadTexture(m_Dark);
-	UnloadTexture(m_Light);
 }
 
 void IBoard::Flip()
@@ -574,67 +524,77 @@ void IBoard::Reset(bool resetEnginePosition)
 {
 	Clear();
 
-	//Black
-	m_Board[0][0].SetType(PieceType::B_ROOK);
-	m_Board[0][1].SetType(PieceType::B_KNIGHT);
-	m_Board[0][2].SetType(PieceType::B_BISHOP);
-	m_Board[0][3].SetType(PieceType::B_QUEEN);
-	m_Board[0][4].SetType(PieceType::B_KING);
-	m_Board[0][5].SetType(PieceType::B_BISHOP);
-	m_Board[0][6].SetType(PieceType::B_KNIGHT);
-	m_Board[0][7].SetType(PieceType::B_ROOK);
+	if (m_StartingFEN_Movecount != -1)
+		LoadFEN(m_StartingFEN);
+	else
+	{
+		//Black
+		m_Board[0][0].SetType(PieceType::B_ROOK);
+		m_Board[0][1].SetType(PieceType::B_KNIGHT);
+		m_Board[0][2].SetType(PieceType::B_BISHOP);
+		m_Board[0][3].SetType(PieceType::B_QUEEN);
+		m_Board[0][4].SetType(PieceType::B_KING);
+		m_Board[0][5].SetType(PieceType::B_BISHOP);
+		m_Board[0][6].SetType(PieceType::B_KNIGHT);
+		m_Board[0][7].SetType(PieceType::B_ROOK);
 
-	m_Board[1][7].SetType(PieceType::B_PAWN);
-	m_Board[1][0].SetType(PieceType::B_PAWN);
-	m_Board[1][1].SetType(PieceType::B_PAWN);
-	m_Board[1][2].SetType(PieceType::B_PAWN);
-	m_Board[1][3].SetType(PieceType::B_PAWN);
-	m_Board[1][4].SetType(PieceType::B_PAWN);
-	m_Board[1][5].SetType(PieceType::B_PAWN);
-	m_Board[1][6].SetType(PieceType::B_PAWN);
-	m_Board[1][7].SetType(PieceType::B_PAWN);
+		m_Board[1][7].SetType(PieceType::B_PAWN);
+		m_Board[1][0].SetType(PieceType::B_PAWN);
+		m_Board[1][1].SetType(PieceType::B_PAWN);
+		m_Board[1][2].SetType(PieceType::B_PAWN);
+		m_Board[1][3].SetType(PieceType::B_PAWN);
+		m_Board[1][4].SetType(PieceType::B_PAWN);
+		m_Board[1][5].SetType(PieceType::B_PAWN);
+		m_Board[1][6].SetType(PieceType::B_PAWN);
+		m_Board[1][7].SetType(PieceType::B_PAWN);
 
 
-	//White
-	m_Board[7][0].SetType(PieceType::W_ROOK);
-	m_Board[7][1].SetType(PieceType::W_KNIGHT);
-	m_Board[7][2].SetType(PieceType::W_BISHOP);
-	m_Board[7][3].SetType(PieceType::W_QUEEN);
-	m_Board[7][4].SetType(PieceType::W_KING);
-	m_Board[7][5].SetType(PieceType::W_BISHOP);
-	m_Board[7][6].SetType(PieceType::W_KNIGHT);
-	m_Board[7][7].SetType(PieceType::W_ROOK);
+		//White
+		m_Board[7][0].SetType(PieceType::W_ROOK);
+		m_Board[7][1].SetType(PieceType::W_KNIGHT);
+		m_Board[7][2].SetType(PieceType::W_BISHOP);
+		m_Board[7][3].SetType(PieceType::W_QUEEN);
+		m_Board[7][4].SetType(PieceType::W_KING);
+		m_Board[7][5].SetType(PieceType::W_BISHOP);
+		m_Board[7][6].SetType(PieceType::W_KNIGHT);
+		m_Board[7][7].SetType(PieceType::W_ROOK);
 
-	m_Board[6][7].SetType(PieceType::W_PAWN);
-	m_Board[6][0].SetType(PieceType::W_PAWN);
-	m_Board[6][1].SetType(PieceType::W_PAWN);
-	m_Board[6][2].SetType(PieceType::W_PAWN);
-	m_Board[6][3].SetType(PieceType::W_PAWN);
-	m_Board[6][4].SetType(PieceType::W_PAWN);
-	m_Board[6][5].SetType(PieceType::W_PAWN);
-	m_Board[6][6].SetType(PieceType::W_PAWN);
-	m_Board[6][7].SetType(PieceType::W_PAWN);
+		m_Board[6][7].SetType(PieceType::W_PAWN);
+		m_Board[6][0].SetType(PieceType::W_PAWN);
+		m_Board[6][1].SetType(PieceType::W_PAWN);
+		m_Board[6][2].SetType(PieceType::W_PAWN);
+		m_Board[6][3].SetType(PieceType::W_PAWN);
+		m_Board[6][4].SetType(PieceType::W_PAWN);
+		m_Board[6][5].SetType(PieceType::W_PAWN);
+		m_Board[6][6].SetType(PieceType::W_PAWN);
+		m_Board[6][7].SetType(PieceType::W_PAWN);
 
-	for (int i = 0; i < 8; i++)
-		for (int j = 0; j < 8; j++)
-			m_Board[i][j].SetMoveCount(0);
+		for (int i = 0; i < 8; i++)
+			for (int j = 0; j < 8; j++)
+				m_Board[i][j].SetHasMoved(false);
 
-	m_BlackKing = &m_Board[0][4];
-	m_WhiteKing = &m_Board[7][4];
+		m_BlackKing = &m_Board[0][4];
+		m_WhiteKing = &m_Board[7][4];
 
-	m_HalfMoveClock = 0;
+		m_HalfMoveClock = 0;
 
-	m_WhiteInCheck = false;
-	m_BlackInCheck = false;
+		m_WhiteInCheck = false;
+		m_BlackInCheck = false;
 
-	m_SideToMove = 0;
-	m_Flipped = false;
+		m_WhiteShort = true;
+		m_WhiteLong = true;
+		m_BlackShort = true;
+		m_BlackLong = true;
 
-	m_Moves.clear();
-	m_MovesSN.clear();
-	m_MoveIndex = -1;
-	if (resetEnginePosition)
-		_GetLegalMoves(m_SideToMove);
+		m_SideToMove = 0;
+		m_Flipped = false;
+
+		m_Moves.clear();
+		m_MovesSN.clear();
+		m_MoveIndex = -1;
+		if (resetEnginePosition)
+			_GetLegalMoves(m_SideToMove);
+	}
 
 	m_Result = Result::NONE;
 
@@ -645,12 +605,12 @@ void IBoard::Reset(bool resetEnginePosition)
 	}
 
 	if (GameData::CurrentEngine && resetEnginePosition)
-		GameData::CurrentEngine->SetPosition(_GetFEN());
+		GameData::CurrentEngine->SetPosition(m_StartingFEN);
 }
 
-bool IBoard::LoadFEN(std::string& fen)
+bool IBoard::LoadFEN(const std::string& fen)
 {
-	std::vector<std::string> splitted = Utils::Split(fen, " ");
+	std::vector<std::string> splitted = Utils::Split(std::string(fen), " ");
 	if (splitted.size() != 6)
 		return false;
 	
@@ -659,10 +619,22 @@ bool IBoard::LoadFEN(std::string& fen)
 	memcpy(backup, m_Board, sizeof(m_Board));
 	Piece* whiteKingBackup = m_WhiteKing;
 	Piece* blackKingBackup = m_BlackKing;
-	uint32_t whiteKingMoveCountBackup = m_WhiteKing->GetMoveCount();
-	uint32_t blackKingMoveCountBackup = m_BlackKing->GetMoveCount();
+	bool whiteShortBackup = m_WhiteShort;
+	bool whiteLongBackup = m_WhiteLong;
+	bool blackShortBackup = m_BlackShort;
+	bool blacktLongBackup = m_BlackLong;
 
 	//Set the board
+	m_Highlights.clear();
+	m_Arrows.clear();
+	m_SelectedPiece = nullptr;
+	m_SelectedMoves.clear();
+	if (m_DraggedPiece)
+	{
+		m_DraggedPiece->SetDrag(false);
+		m_DraggedPiece = nullptr;
+	}
+	Clear();
 	std::string& token = splitted[0];
 	if (std::count(token.begin(), token.end(), '/') != 7)
 		return false;
@@ -735,24 +707,54 @@ bool IBoard::LoadFEN(std::string& fen)
 		m_SideToMove = 0;
 	else if (splitted[1] == "b")
 		m_SideToMove = 1;
-	//invalud FEN
+	//invalid FEN
 	else
 		return false;
+	
+	//Set movecount for every piece
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			Piece& piece = m_Board[i][j];
+			if (piece.GetType() == PieceType::W_PAWN && i == 6)
+				piece.SetHasMoved(false);
+			else if (piece.GetType() == PieceType::B_PAWN && i == 1)
+				piece.SetHasMoved(false);
+			else
+				piece.SetHasMoved(true);
+		}
+	}
 
 	//Set castling availability
-	m_WhiteKing->SetMoveCount(1);
-	m_BlackKing->SetMoveCount(1);
 	for (int i = 0; i < splitted[2].size(); i++)
 	{
-		if (splitted[2][i] == 'K' || splitted[2][i] == 'Q') m_WhiteKing->SetMoveCount(0);
-		else if (splitted[2][i] == 'k' || splitted[2][i] == 'q') m_BlackKing->SetMoveCount(0);
+		if (splitted[2][i] == 'K')
+			m_WhiteShort = true;
+		else if (splitted[2][i] == 'Q')
+			m_WhiteLong = true;
+		else if (splitted[2][i] == 'k')
+			m_BlackShort = true;
+		else if (splitted[2][i] == 'q')
+			m_BlackLong = true;
+		else if (splitted[2][i] == '-')
+		{
+			m_WhiteShort = false;
+			m_WhiteLong = false;
+			m_BlackShort = false;
+			m_BlackLong = false;
+		}
 		//invalid FEN
 		else
-		{
-			m_WhiteKing->SetMoveCount(whiteKingMoveCountBackup);
-			m_BlackKing->SetMoveCount(blackKingMoveCountBackup);
-			return false;
-		}
+			valid = false;
+	}
+	if (!valid)
+	{
+		m_WhiteShort = whiteShortBackup;
+		m_WhiteLong = whiteLongBackup;
+		m_BlackShort = blackShortBackup;
+		m_BlackLong = blacktLongBackup;
+		return false;
 	}
 
 	//Set en passant
@@ -761,18 +763,14 @@ bool IBoard::LoadFEN(std::string& fen)
 		//invalid FEN
 		if (splitted[3].size() != 2 || splitted[3][0] - 'a' < 0 || splitted[3][0] - 'a' > 7)
 			return false;
-		if (m_SideToMove && splitted[3][1] - '6' != 0)
-			return false;
-		if (!m_SideToMove && splitted[3][1] - '3' != 0)
+		if (splitted[3][1] - '3' != 0 && splitted[3][1] - '6' != 0)
 			return false;
 
-		std::string move = "";
-		move.push_back(splitted[3][0]);
-		move.push_back(m_SideToMove ? '7' : '2');
-		move.push_back(splitted[3][0]);
-		move.push_back(m_SideToMove ? '5' : '4');
-		m_Moves.push_back(move);
-		m_MovesSN.push_back(move.substr(2, 2));
+		m_EnPassant = "";
+		m_EnPassant.push_back(splitted[3][0]);
+		m_EnPassant.push_back(m_SideToMove ? '2' : '7');
+		m_EnPassant.push_back(splitted[3][0]);
+		m_EnPassant.push_back(m_SideToMove ? '4' : '5');
 	}
 
 	//Set halfmove clock
@@ -784,7 +782,136 @@ bool IBoard::LoadFEN(std::string& fen)
 	if (!Utils::IsNumber(splitted[5]))
 		return false;
 
-	m_MoveIndex = stoi(splitted[5]) * 2 + m_SideToMove - 3;
+	m_StartingFEN_Movecount = stoi(splitted[5]) * 2 + m_SideToMove - 2;
+	m_Moves.clear();
+	m_MoveIndex = -1;
+
+	m_StartingFEN = fen;
+
+	if (GameData::CurrentEngine)
+		GameData::CurrentEngine->SetPosition(fen);
+
+	_GetLegalMoves(m_SideToMove);
+
+	return true;
+}
+
+bool IBoard::LoadPGN(std::string& pgn)
+{
+	bool censor = false;
+	for (int i = 0; i < pgn.size(); i++)
+	{
+		if (pgn[i] == '{')
+		{
+			pgn[i] = '#';
+			censor = true;
+		}
+		else if (pgn[i] == '}')
+		{
+			pgn[i] = '#';
+			censor = false;
+		}
+		else if (censor)
+			pgn[i] = '#';
+	}
+	censor = false;
+	for (int i = 0; i < pgn.size(); i++)
+	{
+		if (pgn[i] == '[')
+		{
+			pgn[i] = '#';
+			censor = true;
+		}
+		else if (pgn[i] == ']')
+		{
+			pgn[i] = '#';
+			censor = false;
+		}
+		else if (censor)
+			pgn[i] = '#';
+	}
+	
+	//REMOVE ALL SIDELINES
+	censor = false;
+	for (int i = 0; i < pgn.size(); i++)
+	{
+		if (pgn[i] == '(')
+		{
+			pgn[i] = '#';
+			censor = true;
+		}
+		else if (pgn[i] == ')')
+		{
+			pgn[i] = '#';
+			censor = false;
+		}
+		else if (censor)
+			pgn[i] = '#';
+	}
+
+	//Remove #, /r and /n
+	pgn.erase(std::remove(pgn.begin(), pgn.end(), '#'), pgn.end());
+	pgn.erase(std::remove(pgn.begin(), pgn.end(), '\r'), pgn.end());
+	std::replace(pgn.begin(), pgn.end(), '\n', ' ');
+
+	//Backup current state
+	Piece backup[8][8];
+	memcpy(backup, m_Board, sizeof(m_Board));
+	Piece* whiteKingBackup = m_WhiteKing;
+	Piece* blackKingBackup = m_BlackKing;
+	bool whiteShortBackup = m_WhiteShort;
+	bool whiteLongBackup = m_WhiteLong;
+	bool blackShortBackup = m_BlackShort;
+	bool blacktLongBackup = m_BlackLong;
+	int8_t sideToMoveBackup = m_SideToMove;
+	std::vector<std::string> movesBackup = m_Moves;
+	std::vector<std::string> movesSNBackup = m_MovesSN;
+
+	//Set the board
+	m_Highlights.clear();
+	m_Arrows.clear();
+	m_SelectedPiece = nullptr;
+	m_SelectedMoves.clear();
+	if (m_DraggedPiece)
+	{
+		m_DraggedPiece->SetDrag(false);
+		m_DraggedPiece = nullptr;
+	}
+	Reset();
+
+	std::string move = ""; char c;
+	for (int i = pgn.find_first_of('.') + 2; i < pgn.size(); i++)
+	{
+		c = pgn[i];
+		if (c == '.')
+		{
+			i++;
+			move = "";
+		}
+		else if (c == ' ')
+		{
+			move = _GetLongNotation(move);
+			if (!_Move(move, false, false))
+			{
+				memcpy(m_Board, backup, sizeof(backup));
+				m_WhiteKing = whiteKingBackup;
+				m_BlackKing = blackKingBackup;
+				m_WhiteShort = whiteShortBackup;
+				m_WhiteLong = whiteLongBackup;
+				m_BlackShort = blackShortBackup;
+				m_BlackLong = blacktLongBackup;
+				m_SideToMove = sideToMoveBackup;
+				m_Moves = movesBackup;
+				m_MovesSN = movesSNBackup;
+				GameData::CurrentEngine->SetPosition(_GetFEN());
+				return false;
+			}
+			move = "";
+		}
+		else
+			move.push_back(c);
+	}
+	GameData::CurrentEngine->SetPosition(_GetFEN());
 	return true;
 }
 
@@ -800,7 +927,7 @@ void IBoard::Clear()
 	}
 }
 
-bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated)
+bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
 {
 	//Move should overwrite current move or should not be played
 	if (m_MoveIndex != m_Moves.size() - 1)
@@ -809,16 +936,24 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 		if (m_AnalyseMode)
 		{
 			std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
-			
+
 			//Overwrite the current line if necessary
 			if (move != m_Moves[m_MoveIndex + 1])
 			{
-				if (std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end())
+				if ((std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end() || !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
 				{
-					m_Moves.resize(m_MoveIndex + 2); m_MovesSN.resize(m_MoveIndex + 2); //TEMPORARY
-					m_Moves[m_MoveIndex + 1] = move; m_MovesSN[m_MoveIndex + 1] = move;	//TEMPORARY
-					m_MoveIndex++;
-					_ReloadBoard();
+					if (_IsOnBoard(fromSquare) && _IsOnBoard(toSquare))
+					{
+						_ReloadBoard(false);
+						bool capture;
+						_TestMove(move, &capture);
+						m_Moves.resize(m_MoveIndex + 1); m_MovesSN.resize(m_MoveIndex + 1);	//TEMPORARY
+						_DoMove(move, true, animated);
+						if (updateEnginePosition)
+							GameData::CurrentEngine->SetPosition(_GetFEN());
+					}
+					else
+						m_Board[(int)fromSquare.y][(int)fromSquare.x].SetType(PieceType::NONE);
 				}
 				else
 				{
@@ -832,7 +967,7 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 			else
 			{
 				m_MoveIndex++;
-				_ReloadBoard();
+				_ReloadBoard(animated);
 			}
 		}
 		//Move is not made, jump to the end of the line
@@ -840,7 +975,7 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 		{
 			int8_t sideToMove = (m_SideToMove + m_Moves.size() - m_MoveIndex + 1) % 2;
 			m_MoveIndex = m_Moves.size() - 1;
-			_ReloadBoard();
+			_ReloadBoard(false);
 			m_SideToMove = sideToMove;
 			m_Highlights.clear();
 			m_Arrows.clear();
@@ -864,13 +999,18 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 			}
 		}
 		std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
-		if (std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end())
+		if ((std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end()|| !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
 		{
-			_DoMove(fromSquare, toSquare, true, animated);
-			_GetLegalMoves(m_SideToMove);
-			GameData::CurrentEngine->SetPosition(_GetFEN());
-			m_Highlights.clear();
-			m_Arrows.clear();
+			if (_IsOnBoard(fromSquare) && _IsOnBoard(toSquare))
+			{
+				_DoMove(fromSquare, toSquare, true, animated);
+				if (updateEnginePosition)
+					GameData::CurrentEngine->SetPosition(_GetFEN());
+				m_Highlights.clear();
+				m_Arrows.clear();
+			}
+			else
+				m_Board[(int)fromSquare.y][(int)fromSquare.x].SetType(PieceType::NONE);
 			return true;
 		}
 		else return false;
@@ -878,37 +1018,77 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 	return false;
 }
 
-bool IBoard::_Move(const std::string& move, bool animated)
+bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
 {
 	Vector2 from = _ToRealSquare(move.substr(0, 2));
 	Vector2 to = _ToRealSquare(move.substr(2, 2));
-	return _Move(from, to, animated);
+	return _Move(from, to, animated, updateEnginePosition);
 }
 
-void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool registerMove, bool animated)
+void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool registerMove, bool animated, bool playSound)
 {
+	Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
 	std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
+
+	bool moveIsLegal = std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end();
 	bool capture = false;
 	if (m_Board[(int)toSquare.y][(int)toSquare.x].GetType() != PieceType::NONE)
 		capture = true;
 
-	//Is the move a castle
-	Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
-	if (piece->GetType() == PieceType::W_KING && std::abs(toSquare.x - fromSquare.x) == 2)
-		return _CastleKing(m_WhiteKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated);
-	else if (piece->GetType() == PieceType::B_KING && std::abs(toSquare.x - fromSquare.x) == 2)
-		return _CastleKing(m_BlackKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated);
+	if (moveIsLegal && m_OnlyLegalMoves)
+	{
+		//Is the move a castle
+		if (piece->GetType() == PieceType::W_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
+			return _CastleKing(m_WhiteKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
+		else if (piece->GetType() == PieceType::B_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
+			return _CastleKing(m_BlackKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
 
-	//Check en passant
-	if (fromSquare.x != toSquare.x && piece->GetType() == PieceType::W_PAWN && m_Board[(int)toSquare.y][(int)toSquare.x].GetType() == PieceType::NONE)
-	{
-		m_Board[(int)toSquare.y + 1][(int)toSquare.x] = Piece(PieceType::NONE, m_Board[(int)toSquare.y + 1][(int)toSquare.x].GetPosition());
-		capture = true;
+		//Check en passant
+		if (fromSquare.x != toSquare.x && piece->GetType() == PieceType::W_PAWN && m_Board[(int)toSquare.y][(int)toSquare.x].GetType() == PieceType::NONE)
+		{
+			m_Board[(int)toSquare.y + 1][(int)toSquare.x] = Piece(PieceType::NONE, m_Board[(int)toSquare.y + 1][(int)toSquare.x].GetPosition());
+			capture = true;
+		}
+		else if (fromSquare.x != toSquare.x && piece->GetType() == PieceType::B_PAWN && m_Board[(int)toSquare.y][(int)toSquare.x].GetType() == PieceType::NONE)
+		{
+			m_Board[(int)toSquare.y - 1][(int)toSquare.x] = Piece(PieceType::NONE, m_Board[(int)toSquare.y - 1][(int)toSquare.x].GetPosition());
+			capture = true;
+		}
 	}
-	else if (fromSquare.x != toSquare.x && piece->GetType() == PieceType::B_PAWN && m_Board[(int)toSquare.y][(int)toSquare.x].GetType() == PieceType::NONE)
+
+	//Update castling availability
+	if (registerMove && m_OnlyLegalMoves)
 	{
-		m_Board[(int)toSquare.y - 1][(int)toSquare.x] = Piece(PieceType::NONE, m_Board[(int)toSquare.y - 1][(int)toSquare.x].GetPosition());
-		capture = true;
+		if (piece->GetType() == PieceType::W_KING)
+		{
+			m_WhiteShort = false;
+			m_WhiteLong = false;
+		}
+		else if (piece->GetType() == PieceType::B_KING)
+		{
+			m_BlackShort = false;
+			m_BlackLong = false;
+		}
+		else if (piece->GetType() == PieceType::W_ROOK)
+		{
+			if (fromSquare.y == 7)
+			{
+				if (fromSquare.x == 0)
+					m_WhiteLong = false;
+				else if (fromSquare.x == 7)
+					m_WhiteShort = false;
+			}
+		}
+		else if (piece->GetType() == PieceType::B_ROOK)
+		{
+			if (fromSquare.y == 0)
+			{
+				if (fromSquare.x == 0)
+					m_BlackLong = false;
+				else if (fromSquare.x == 7)
+					m_BlackShort = false;
+			}
+		}
 	}
 
 	//Move the piece in the array
@@ -927,34 +1107,57 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 	else if (piece->GetType() == PieceType::B_KING)
 		m_BlackKing = piece;
 
-	//Check if pawn transforms
-	if (piece->GetType() == PieceType::W_PAWN && toSquare.y == 0)
+	if (moveIsLegal && m_OnlyLegalMoves)
 	{
-		piece->SetType(PieceType::W_QUEEN);
-		move += "q";
-	}
-	else if (piece->GetType() == PieceType::B_PAWN && toSquare.y == 7)
-	{
-		piece->SetType(PieceType::B_QUEEN);
-		move += "q";
+		//Check if pawn transforms
+		if (piece->GetType() == PieceType::W_PAWN && toSquare.y == 0)
+		{
+			piece->SetType(PieceType::W_QUEEN);
+			move += "q";
+		}
+		else if (piece->GetType() == PieceType::B_PAWN && toSquare.y == 7)
+		{
+			piece->SetType(PieceType::B_QUEEN);
+			move += "q";
+		}
+
+		//Check en passant availability
+		if (piece->GetType() == PieceType::W_PAWN && toSquare.y - fromSquare.y == -2)
+			m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y - 1 });
+		else if (piece->GetType() == PieceType::B_PAWN && toSquare.y - fromSquare.y == 2)
+			m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y + 1 });
+		else
+			m_EnPassant = "";
+		
+		//Update check variables
+		m_WhiteInCheck = _IsAttacked(m_WhiteKing);
+		m_BlackInCheck = _IsAttacked(m_BlackKing);
+		
+		m_SideToMove = !m_SideToMove;
 	}
 
 	//Register if necessary
 	if (registerMove)
+	{
 		_RegisterMove(piece, move, capture, !capture && piece->GetType() != PieceType::W_PAWN && piece->GetType() != PieceType::B_PAWN);
+		_GetLegalMoves(m_SideToMove);
 
-	//Update check variables
-	m_WhiteInCheck = _IsAttacked(m_WhiteKing);
-	m_BlackInCheck = _IsAttacked(m_BlackKing);
-
-	m_SideToMove = !m_SideToMove;
+		//Play sound
+		if (playSound)
+		{
+			if (capture)
+				PlaySound(GameData::Sounds.CaptureSound);
+			else
+				PlaySound(GameData::Sounds.MoveSound);
+		}
+	}
 }
 
-void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated)
+void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, bool playSound)
 {
 	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
 	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
-	IBoard::_DoMove(fromSquare, toSquare, registerMove, animated);
+	IBoard::_DoMove(fromSquare, toSquare, registerMove, animated, playSound);
 }
 
 bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool* capture)
@@ -983,9 +1186,9 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 
 	//Is the move a castle
 	Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
-	if (piece->GetType() == PieceType::W_KING && std::abs(toSquare.x - fromSquare.x) == 2)
+	if (piece->GetType() == PieceType::W_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
 		return _TestCastle(m_WhiteKing, (toSquare.x - fromSquare.x) / 2);
-	else if (piece->GetType() == PieceType::B_KING && std::abs(toSquare.x - fromSquare.x) == 2)
+	else if (piece->GetType() == PieceType::B_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
 		return _TestCastle(m_BlackKing, (toSquare.x - fromSquare.x) / 2);
 
 	//Backup current state
@@ -1032,12 +1235,12 @@ bool IBoard::_TestMove(const std::string& move, bool* capture)
 	return IBoard::_TestMove(fromSquare, toSquare, capture);
 }
 
-void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool animated)
+void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool animated, bool playSound)
 {
 	Vector2 square = _GetRealSquare(king->GetPosition());
 
 	//Short castle
-	if (direction == 1)
+	if (direction > 0)
 	{
 		//Move the king in the array
 		Piece& rook = m_Board[(int)square.y][7];
@@ -1059,14 +1262,22 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		m_Board[(int)square.y][5] = rook;
 		m_Board[(int)square.y][7] = Piece(PieceType::NONE, tempPosition);
 
+		m_SideToMove = !m_SideToMove;
+
 		//Register if necessary
 		if (registerMove)
+		{
 			_RegisterMove(king, _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 6, square.y }), false, true);
+			_GetLegalMoves(m_SideToMove);
 
-		m_SideToMove = !m_SideToMove;
+			//Play sound
+			if (playSound)
+				PlaySound(GameData::Sounds.CastleSound);
+		}
+
 	}
 	//Long castle
-	else if (direction == -1)
+	else if (direction < 0)
 	{
 		//Move the king in the array
 		Piece& rook = m_Board[(int)square.y][0];
@@ -1088,11 +1299,19 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		m_Board[(int)square.y][3] = rook;
 		m_Board[(int)square.y][0] = Piece(PieceType::NONE, tempPosition);
 
+		m_SideToMove = !m_SideToMove;
+
 		//Register if necessary
 		if (registerMove)
+		{
 			_RegisterMove(king, _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 2, square.y }), false, true);
+			_GetLegalMoves(m_SideToMove);
 
-		m_SideToMove = !m_SideToMove;
+			//Play sound
+			if (playSound)
+				PlaySound(GameData::Sounds.CastleSound);
+		}
+
 	}
 
 	//Update king pointers
@@ -1104,18 +1323,27 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 
 bool IBoard::_TestCastle(Piece* king, int8_t direction)
 {
-	if (king->GetMoveCount() > 0) return false;
-	if (king->GetSide() == 0 && m_WhiteInCheck) return false;
-	else if (king->GetSide() == 1 && m_BlackInCheck) return false;
+	if (king->GetSide() == 0)
+	{
+		if (m_WhiteInCheck) return false;
+		if (direction > 0 && !m_WhiteShort) return false;
+		if (direction < 0 && !m_WhiteLong) return false;
+	}
+	else if (king->GetSide() == 1)
+	{
+		if (m_BlackInCheck) return false;
+		if (direction > 0 && !m_BlackShort) return false;
+		if (direction < 0 && !m_BlackLong) return false;
+	}
 
 	Vector2 square = _GetRealSquare(king->GetPosition());
 
 	//Short castle
-	if (direction == 1)
+	if (direction > 0)
 	{
 		Piece& rook = m_Board[(int)square.y][7];
 		if ((rook.GetType() == PieceType::W_ROOK || rook.GetType() == PieceType::B_ROOK) &&
-			king->GetSide() == rook.GetSide() && rook.GetMoveCount() == 0 &&
+			king->GetSide() == rook.GetSide() &&
 			m_Board[(int)square.y][5].GetType() == PieceType::NONE &&
 			m_Board[(int)square.y][6].GetType() == PieceType::NONE)
 		{
@@ -1156,11 +1384,11 @@ bool IBoard::_TestCastle(Piece* king, int8_t direction)
 		else return false;
 	}
 	//Long castle
-	else if (direction == -1)
+	else if (direction < 0)
 	{
 		Piece& rook = m_Board[(int)square.y][0];
 		if ((rook.GetType() == PieceType::W_ROOK || rook.GetType() == PieceType::B_ROOK) &&
-			king->GetSide() == rook.GetSide() && rook.GetMoveCount() == 0 &&
+			king->GetSide() == rook.GetSide() &&
 			m_Board[(int)square.y][1].GetType() == PieceType::NONE &&
 			m_Board[(int)square.y][2].GetType() == PieceType::NONE &&
 			m_Board[(int)square.y][3].GetType() == PieceType::NONE)
@@ -1228,11 +1456,11 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					if (square.x > 0 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x - 1].GetSide() == 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 1 });
 					if (square.x < 7 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x + 1].GetSide() == 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 1 });
 					//2 moves forward
-					if (square.y > 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::NONE && piece.GetMoveCount() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y - 2 });
+					if (square.y > 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y - 2 });
 					//En passant
-					if (square.x < 7 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y - 2 }) + _ToChessNote(Vector2{ square.x + 1, square.y }) == m_Moves[m_MoveIndex])
+					if (square.x < 7 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) == m_EnPassant)
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 1 });
-					if (square.x > 0 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y - 2 }) + _ToChessNote(Vector2{ square.x - 1, square.y }) == m_Moves[m_MoveIndex])
+					if (square.x > 0 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) == m_EnPassant)
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 1 });
 					break;
 				}
@@ -1482,15 +1710,16 @@ void IBoard::_GetLegalMoves(uint8_t side)
 							if (m_Board[j][i].GetSide() != 0)
 								pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
 
-					//Short castle
-					if (piece.GetMoveCount() == 0 && m_Board[(int)square.y][7].GetType() == PieceType::W_ROOK && m_Board[(int)square.y][7].GetMoveCount() == 0 &&
-						m_Board[(int)square.y][5].GetType() == PieceType::NONE && m_Board[(int)square.y][6].GetType() == PieceType::NONE)
+					//Castling
+					if (square.x == 4 && square.y == 7)
+					{
+						//Short
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y });
-
-					//Long castle
-					if (piece.GetMoveCount() == 0 && m_Board[(int)square.y][0].GetType() == PieceType::W_ROOK && m_Board[(int)square.y][0].GetMoveCount() == 0 &&
-						m_Board[(int)square.y][1].GetType() == PieceType::NONE && m_Board[(int)square.y][2].GetType() == PieceType::NONE && m_Board[(int)square.y][3].GetType() == PieceType::NONE)
+						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 3, square.y });
+						//Long
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y });
+						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 4, square.y });
+					}
 					break;
 				}
 				}
@@ -1516,11 +1745,11 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					if (square.x > 0 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x - 1].GetSide() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 1 });
 					if (square.x < 7 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x + 1].GetSide() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 1 });
 					//2 moves forward
-					if (square.y < 6 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y + 2][(int)square.x].GetType() == PieceType::NONE && piece.GetMoveCount() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y + 2 });
+					if (square.y < 6 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y + 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y + 2 });
 					//En passant
-					if (square.x < 7 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y + 2 }) + _ToChessNote(Vector2{ square.x + 1, square.y }) == m_Moves[m_MoveIndex])
+					if (square.x < 7 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) == m_EnPassant)
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 1 });
-					if (square.x > 0 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y + 2 }) + _ToChessNote(Vector2{ square.x - 1, square.y }) == m_Moves[m_MoveIndex])
+					if (square.x > 0 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) == m_EnPassant)
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 1 });
 					break;
 				}
@@ -1770,15 +1999,16 @@ void IBoard::_GetLegalMoves(uint8_t side)
 							if (m_Board[j][i].GetSide() != 1)
 								pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
 
-					//Short castle
-					if (piece.GetMoveCount() == 0 && m_Board[(int)square.y][7].GetType() == PieceType::B_ROOK && m_Board[(int)square.y][7].GetMoveCount() == 0 &&
-						m_Board[(int)square.y][5].GetType() == PieceType::NONE && m_Board[(int)square.y][6].GetType() == PieceType::NONE)
+					//Castling
+					if (square.x == 4 && square.y == 0)
+					{
+						//Short
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y });
-
-					//Long castle
-					if (piece.GetMoveCount() == 0 && m_Board[(int)square.y][0].GetType() == PieceType::B_ROOK && m_Board[(int)square.y][0].GetMoveCount() == 0 &&
-						m_Board[(int)square.y][1].GetType() == PieceType::NONE && m_Board[(int)square.y][2].GetType() == PieceType::NONE && m_Board[(int)square.y][3].GetType() == PieceType::NONE)
+						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 3, square.y });
+						//Long
 						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y });
+						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 4, square.y });
+					}
 					break;
 				}
 				}
@@ -1903,6 +2133,12 @@ bool IBoard::_IsAttacked(Piece* piece)
 	}
 
 	//Check king
+	
+	//int startI = square.x > 0 ? square.x - 1 : square.x;	
+	//int startJ = square.y < 7 ? 6 - square.y : 7 - square.y;
+	//int endI = square.x < 7 ? square.x + 2 : square.x + 1;
+	//int endJ = square.y > 0 ? 9 - square.y : 8 - square.y;
+
 	int startI = square.x > 0 ? square.x - 1 : square.x;
 	int startJ = square.y > 0 ? square.y - 1 : square.y;
 	int endI = square.x < 7 ? square.x + 2 : square.x + 1;
@@ -1916,6 +2152,11 @@ bool IBoard::_IsAttacked(Piece* piece)
 	return false;
 }
 
+bool IBoard::_IsOnBoard(const Vector2& square)
+{
+	return square.x >= 0 && square.x <= 7 && square.y >= 0 && square.y <= 7;
+}
+
 void IBoard::_RegisterMove(Piece* piece, const std::string& move, bool capture, bool halfMove)
 {
 	m_Moves.push_back(move);
@@ -1925,10 +2166,11 @@ void IBoard::_RegisterMove(Piece* piece, const std::string& move, bool capture, 
 		m_HalfMoveClock++;
 	else
 		m_HalfMoveClock = 0;
-	piece->AddToMoveCount(1);
+	if (m_OnlyLegalMoves)
+		piece->SetHasMoved(true);
 }
 
-void IBoard::_ReloadBoard()
+void IBoard::_ReloadBoard(bool lastMoveVisible)
 {
 	//Reset board
 	std::vector<std::string> movesBackup = m_Moves;
@@ -1946,38 +2188,15 @@ void IBoard::_ReloadBoard()
 	m_Flipped = flippedBackup;
 
 	//Redo moves
-	for (int i = 0; i < moveIndexBackup + 1; i++)
-		IBoard::_DoMove(movesBackup[i], true);
+	for (int i = 0; i < moveIndexBackup; i++)
+		IBoard::_DoMove(movesBackup[i], true, false, false);
+	IBoard::_DoMove(movesBackup[moveIndexBackup], true, lastMoveVisible, lastMoveVisible);
 
 	//Add back remaining moves
 	for (int i = moveIndexBackup + 1; i < movesBackup.size(); i++)
 	{
 		m_Moves.push_back(movesBackup[i]);
 		m_MovesSN.push_back(movesSNBackup[i]);
-	}
-
-	//Check winner
-	_GetLegalMoves(m_SideToMove);
-	if (m_LegalMoves.size() == 0)
-	{
-		if (m_SideToMove == 0)
-		{
-			//Black won
-			if (m_WhiteInCheck)
-				m_Result = Result::BLACK_WIN;
-			//Stalemate
-			else
-				m_Result = Result::STALEMATE;
-		}
-		else
-		{
-			//White won
-			if (m_BlackInCheck)
-				m_Result = Result::WHITE_WIN;
-			//Stalemate
-			else
-				m_Result = Result::STALEMATE;
-		}
 	}
 
 	//Clear guides
@@ -2289,7 +2508,852 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 	return "";
 }
 
-Vector2 IBoard::_ToSquare(const std::string& move)const
+std::string IBoard::_GetLongNotation(std::string& move)
+{
+	//Check castles
+	if (move == "O-O")
+	{
+		if (!m_SideToMove)
+			return "e1g1";
+		else
+			return "e8g8";
+	}
+	else if (move == "O-O-O")
+	{
+		if (!m_SideToMove)
+			return "e1c1";
+		else
+			return "e8c8";
+	}
+
+	//Remove check or checkmate sign
+	if (move.back() == '+' || move.back() == '#')
+		move.pop_back();
+
+	//Remove capture sign
+	int idx = move.find('x');
+	if (idx != -1)
+		move.erase(idx, 1);
+
+	//Pawn moves
+	if (move.size() == 2)
+	{
+		Vector2 square = _ToRealSquare(move);
+		//White moves
+		if (!m_SideToMove)
+		{
+			if (m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::W_PAWN)
+				return _ToChessNote(Vector2{ square.x, square.y + 1 }) + move;
+			else if (m_Board[(int)square.y + 2][(int)square.x].GetType() == PieceType::W_PAWN)
+				return _ToChessNote(Vector2{ square.x, square.y + 2 }) + move;
+			else
+				return "?";
+		}
+		//Black moves
+		else
+		{
+			if (m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::B_PAWN)
+				return _ToChessNote(Vector2{ square.x, square.y - 1 }) + move;
+			else if (m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::B_PAWN)
+				return _ToChessNote(Vector2{ square.x, square.y - 2 }) + move;
+			else
+				return "?";
+		}
+	}
+	else if (move.size() == 3)
+	{
+		Vector2 square = _ToRealSquare(move.substr(1, 2));
+		//Pawn takes
+		if (islower(move[0]))
+		{
+			//White moves
+			if (!m_SideToMove)
+			{
+				move.insert(move.begin() + 1, move[2] - 1);
+				return move;
+			}
+			//Black moves
+			else
+			{
+				move.insert(move.begin() + 1, move[2] + 1);
+				return move;
+			}
+		}
+		//Piece moves or takes unambiguously
+		else
+		{
+			//White moves
+			if (!m_SideToMove)
+			{
+				if (move[0] == 'N')
+				{
+					if (m_Board[(int)square.y - 2][(int)square.x + 1].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x + 1, square.y - 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 1][(int)square.x + 2].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x + 2, square.y - 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 1][(int)square.x + 2].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x + 2, square.y + 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 2][(int)square.x + 1].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x + 1, square.y + 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 2][(int)square.x - 1].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x - 1, square.y + 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 1][(int)square.x - 2].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x - 2, square.y + 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 1][(int)square.x - 2].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x - 2, square.y - 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 2][(int)square.x - 1].GetType() == PieceType::W_KNIGHT) return _ToChessNote(Vector2{ square.x - 1, square.y - 2 }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'B')
+				{
+					//Check down right
+					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check down left
+					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up right
+					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up left
+					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'R')
+				{
+					//Check right
+					for (int i = square.x + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_ROOK)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check left
+					for (int i = square.x - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_ROOK)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check down
+					for (int i = square.y + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_ROOK)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+					//Check up
+					for (int i = square.y - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_ROOK)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					//Check down right
+					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check down left
+					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up right
+					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up left
+					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+
+					//Check right
+					for (int i = square.x + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check left
+					for (int i = square.x - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check down
+					for (int i = square.y + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+					//Check up
+					for (int i = square.y - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 1)
+							break;
+						else if (tempPiece.GetType() == PieceType::W_QUEEN)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'K')
+				{
+					//Check surrounding squares
+					int startI = square.x > 0 ? square.x - 1 : square.x;
+					int startJ = square.y > 0 ? square.y - 1 : square.y;
+					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
+					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					for (int j = startJ; j < endJ; j++)
+						for (int i = startI; i < endI; i++)
+							if (m_Board[j][i].GetType() == PieceType::W_KING)
+								return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+				}
+			}
+			//Black moves
+			else
+			{
+				if (move[0] == 'N')
+				{
+					if (m_Board[(int)square.y - 2][(int)square.x + 1].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x + 1, square.y - 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 1][(int)square.x + 2].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x + 2, square.y - 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 1][(int)square.x + 2].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x + 2, square.y + 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 2][(int)square.x + 1].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x + 1, square.y + 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 2][(int)square.x - 1].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x - 1, square.y + 2 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y + 1][(int)square.x - 2].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x - 2, square.y + 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 1][(int)square.x - 2].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x - 2, square.y - 1 }) + move.substr(1, 2);
+					else if (m_Board[(int)square.y - 2][(int)square.x - 1].GetType() == PieceType::B_KNIGHT) return _ToChessNote(Vector2{ square.x - 1, square.y - 2 }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'B')
+				{
+					//Check down right
+					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check down left
+					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up right
+					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up left
+					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_BISHOP)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'R')
+				{
+					//Check right
+					for (int i = square.x + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_ROOK)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check left
+					for (int i = square.x - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_ROOK)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check down
+					for (int i = square.y + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_ROOK)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+					//Check up
+					for (int i = square.y - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_ROOK)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					//Check down right
+					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check down left
+					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up right
+					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+					//Check up left
+					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					{
+						Piece& tempPiece = m_Board[j][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+					}
+
+					//Check right
+					for (int i = square.x + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check left
+					for (int i = square.x - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[(int)square.y][i];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+					}
+					//Check down
+					for (int i = square.y + 1; i < 8; i++)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+					//Check up
+					for (int i = square.y - 1; i >= 0; i--)
+					{
+						Piece& tempPiece = m_Board[i][(int)square.x];
+						if (tempPiece.GetSide() == 0)
+							break;
+						else if (tempPiece.GetType() == PieceType::B_QUEEN)
+							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'K')
+				{
+					//Check surrounding squares
+					int startI = square.x > 0 ? square.x - 1 : square.x;
+					int startJ = square.y > 0 ? square.y - 1 : square.y;
+					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
+					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					for (int j = startJ; j < endJ; j++)
+						for (int i = startI; i < endI; i++)
+							if (m_Board[j][i].GetType() == PieceType::B_KING)
+								return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
+				}
+			}
+		}
+	}
+	//Piece moves ambiguously or promotion
+	else if (move.size() == 4)
+	{
+		Vector2 square = _ToRealSquare(move.substr(2, 2));
+		//Promotion
+		if (move.find('=') != -1)
+			return move;
+		//White moves
+		if (!m_SideToMove)
+		{
+			//Row is the same
+			if (!Utils::IsNumber(move.substr(1, 1)))
+			{
+				if (move[0] == 'N')
+				{
+					if (std::abs(move[2] - move[1]) == 1)
+					{
+						if (square.x >= 2 && m_Board[(int)square.y][(int)square.x - 2].GetType() == PieceType::W_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 2 }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 2 }) + move.substr(1, 2);
+					}
+					else
+					{
+						if (square.x >= 1 && m_Board[(int)square.y][(int)square.x - 1].GetType() == PieceType::W_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 1 }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 1 }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'B')
+				{
+					int diff = std::abs(move[2] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'R')
+				{
+					move = move.substr(1, 3);
+					if (move[0] != move[1])
+					{
+						move.insert(move.begin() + 1, move[2]);
+						return move;
+					}
+					else
+					{
+						//Check down
+						for (int i = square.y + 1; i < 8; i++)
+						{
+							Piece& tempPiece = m_Board[i][(int)square.x];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::W_ROOK)
+								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+						}
+						//Check up
+						for (int i = square.y - 1; i >= 0; i--)
+						{
+							Piece& tempPiece = m_Board[i][(int)square.x];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::W_ROOK)
+								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+						}
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					int diff = std::abs(move[2] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+					else
+					{
+						move = move.substr(1, 3);
+						if (move[0] != move[1])
+						{
+							move.insert(move.begin() + 1, move[2]);
+							return move;
+						}
+						else
+						{
+							//Check down
+							for (int i = square.y + 1; i < 8; i++)
+							{
+								Piece& tempPiece = m_Board[i][(int)square.x];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::W_QUEEN)
+									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+							}
+							//Check up
+							for (int i = square.y - 1; i >= 0; i--)
+							{
+								Piece& tempPiece = m_Board[i][(int)square.x];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::W_QUEEN)
+									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+							}
+						}
+					}
+				}
+			}
+			//Column is the same
+			else
+			{
+				if (move[0] == 'N')
+				{
+					if (std::abs(move[3] - move[1]) == 1)
+					{
+						if (square.y >= 2 && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::W_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y - 2, (float)square.x }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y + 2, (float)square.x }) + move.substr(1, 2);
+					}
+					else
+					{
+						if (square.y >= 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::W_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y - 1, (float)square.x }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y + 1, (float)square.x }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'B')
+				{
+					int diff = std::abs(move[3] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'R')
+				{
+					move = move.substr(1, 3);
+					if (move[0] != move[1])
+					{
+						move.insert(move.begin(), move[1]);
+						return move;
+					}
+					else
+					{
+						//Check right
+						for (int i = square.x + 1; i < 8; i++)
+						{
+							Piece& tempPiece = m_Board[(int)square.y][i];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::W_ROOK)
+								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+						}
+						//Check left
+						for (int i = square.x - 1; i >= 0; i--)
+						{
+							Piece& tempPiece = m_Board[(int)square.y][i];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::W_ROOK)
+								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+						}
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					int diff = std::abs(move[3] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+					else
+					{
+						move = move.substr(1, 3);
+						if (move[0] != move[1])
+						{
+							move.insert(move.begin(), move[1]);
+							return move;
+						}
+						else
+						{
+							//Check right
+							for (int i = square.x + 1; i < 8; i++)
+							{
+								Piece& tempPiece = m_Board[(int)square.y][i];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::W_QUEEN)
+									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+							}
+							//Check left
+							for (int i = square.x - 1; i >= 0; i--)
+							{
+								Piece& tempPiece = m_Board[(int)square.y][i];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::W_QUEEN)
+									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+							}
+						}
+					}
+				}
+			}
+		}
+		//Black moves
+		else
+		{
+			//Row is the same
+			if (!Utils::IsNumber(move.substr(1, 1)))
+			{
+				if (move[0] == 'N')
+				{
+					if (std::abs(move[2] - move[1]) == 1)
+					{
+						if (square.x >= 2 && m_Board[(int)square.y][(int)square.x - 2].GetType() == PieceType::B_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 2 }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 2 }) + move.substr(1, 2);
+					}
+					else
+					{
+						if (square.x >= 1 && m_Board[(int)square.y][(int)square.x - 1].GetType() == PieceType::B_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 1 }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 1 }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'B')
+				{
+					int diff = std::abs(move[2] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'R')
+				{
+					move = move.substr(1, 3);
+					if (move[0] != move[1])
+					{
+						move.insert(move.begin() + 1, move[2]);
+						return move;
+					}
+					else
+					{
+						//Check down
+						for (int i = square.y + 1; i < 8; i++)
+						{
+							Piece& tempPiece = m_Board[i][(int)square.x];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::B_ROOK)
+								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+						}
+						//Check up
+						for (int i = square.y - 1; i >= 0; i--)
+						{
+							Piece& tempPiece = m_Board[i][(int)square.x];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::B_ROOK)
+								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+						}
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					int diff = std::abs(move[2] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+					else
+					{
+						move = move.substr(1, 3);
+						if (move[0] != move[1])
+						{
+							move.insert(move.begin() + 1, move[2]);
+							return move;
+						}
+						else
+						{
+							//Check down
+							for (int i = square.y + 1; i < 8; i++)
+							{
+								Piece& tempPiece = m_Board[i][(int)square.x];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::B_QUEEN)
+									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+							}
+							//Check up
+							for (int i = square.y - 1; i >= 0; i--)
+							{
+								Piece& tempPiece = m_Board[i][(int)square.x];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::B_QUEEN)
+									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
+							}
+						}
+					}
+				}
+			}
+			//Column is the same
+			else
+			{
+				if (move[0] == 'N')
+				{
+					if (std::abs(move[3] - move[1]) == 1)
+					{
+						if (square.y >= 2 && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::B_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y - 2, (float)square.x }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y + 2, (float)square.x }) + move.substr(1, 2);
+					}
+					else
+					{
+						if (square.y >= 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::B_KNIGHT)
+							return _ToChessNote(Vector2{ (float)square.y - 1, (float)square.x }) + move.substr(1, 2);
+						else
+							return _ToChessNote(Vector2{ (float)square.y + 1, (float)square.x }) + move.substr(1, 2);
+					}
+				}
+				else if (move[0] == 'B')
+				{
+					int diff = std::abs(move[3] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+				}
+				else if (move[0] == 'R')
+				{
+					move = move.substr(1, 3);
+					if (move[0] != move[1])
+					{
+						move.insert(move.begin(), move[1]);
+						return move;
+					}
+					else
+					{
+						//Check right
+						for (int i = square.x + 1; i < 8; i++)
+						{
+							Piece& tempPiece = m_Board[(int)square.y][i];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::B_ROOK)
+								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+						}
+						//Check left
+						for (int i = square.x - 1; i >= 0; i--)
+						{
+							Piece& tempPiece = m_Board[(int)square.y][i];
+							if (tempPiece.GetSide() == 1)
+								break;
+							else if (tempPiece.GetType() == PieceType::B_ROOK)
+								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+						}
+					}
+				}
+				else if (move[0] == 'Q')
+				{
+					int diff = std::abs(move[3] - move[1]);
+					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+					else
+					{
+						move = move.substr(1, 3);
+						if (move[0] != move[1])
+						{
+							move.insert(move.begin(), move[1]);
+							return move;
+						}
+						else
+						{
+							//Check right
+							for (int i = square.x + 1; i < 8; i++)
+							{
+								Piece& tempPiece = m_Board[(int)square.y][i];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::B_QUEEN)
+									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+							}
+							//Check left
+							for (int i = square.x - 1; i >= 0; i--)
+							{
+								Piece& tempPiece = m_Board[(int)square.y][i];
+								if (tempPiece.GetSide() == 1)
+									break;
+								else if (tempPiece.GetType() == PieceType::B_QUEEN)
+									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return "";
+}
+
+Vector2 IBoard::_ToSquare(const std::string& move) const
 {
 	if (m_Flipped)
 	{
@@ -2309,7 +3373,7 @@ Vector2 IBoard::_ToSquare(const std::string& move)const
 	}
 }
 
-Vector2 IBoard::_ToRealSquare(const std::string& move)const
+Vector2 IBoard::_ToRealSquare(const std::string& move) const
 {
 	return Vector2
 	{
@@ -2320,7 +3384,7 @@ Vector2 IBoard::_ToRealSquare(const std::string& move)const
 
 Vector2 IBoard::_GetSquare(const Vector2& position) const
 {
-	Vector2 square{ (float)(((int)position.x - (int)m_BoardBounds.x) / (int)m_SquareSize), (float)(((int)position.y - (int)m_BoardBounds.y) / (int)m_SquareSize) };
+	Vector2 square{ std::floor((position.x - m_BoardBounds.x) / m_SquareSize), std::floor((position.y - m_BoardBounds.y) / m_SquareSize) };
 	if (m_Flipped)
 	{
 		square.x = 7 - square.x;
@@ -2331,7 +3395,7 @@ Vector2 IBoard::_GetSquare(const Vector2& position) const
 
 Vector2 IBoard::_GetRealSquare(const Vector2& position) const
 {
-	return Vector2{ (float)(((int)position.x - (int)m_BoardBounds.x) / (int)m_SquareSize), (float)(((int)position.y - (int)m_BoardBounds.y) / (int)m_SquareSize) };
+	return Vector2{ std::floor((position.x - m_BoardBounds.x) / m_SquareSize), std::floor((position.y - m_BoardBounds.y) / m_SquareSize) };
 }
 
 std::string IBoard::_MovesToString() const
@@ -2342,7 +3406,7 @@ std::string IBoard::_MovesToString() const
 	return moves;
 }
 
-std::string IBoard::_GetFEN()
+std::string IBoard::_GetFEN() const
 {
 	std::string fen = ""; int count = 0;
 	for (int i = 0; i < 8; i++)
@@ -2374,11 +3438,11 @@ std::string IBoard::_GetFEN()
 	fen += m_SideToMove ? "b " : "w ";
 
 	//castling availability
-	if (m_Board[7][7].GetType() == PieceType::W_ROOK && m_Board[7][7].GetMoveCount() == 0 && m_WhiteKing->GetMoveCount() == 0) fen += "K";
-	if (m_Board[7][0].GetType() == PieceType::W_ROOK && m_Board[7][0].GetMoveCount() == 0 && m_WhiteKing->GetMoveCount() == 0) fen += "Q";
-	if (m_Board[0][7].GetType() == PieceType::B_ROOK && m_Board[0][7].GetMoveCount() == 0 && m_BlackKing->GetMoveCount() == 0) fen += "k";
-	if (m_Board[0][0].GetType() == PieceType::B_ROOK && m_Board[0][0].GetMoveCount() == 0 && m_BlackKing->GetMoveCount() == 0) fen += "q";
-	if (fen.back() == ' ') fen += " -";
+	if (m_WhiteShort) fen += "K";
+	if (m_WhiteLong) fen += "Q";
+	if (m_BlackShort) fen += "k";
+	if (m_BlackLong) fen += "q";
+	if (fen.back() == ' ') fen += "-";
 	fen += " ";
 
 	//en passant target square (- or e3 or c6 etc)
@@ -2386,7 +3450,7 @@ std::string IBoard::_GetFEN()
 		fen += "- ";
 	else
 	{
-		std::string& move = m_Moves.back();
+		const std::string& move = m_Moves.back();
 		Vector2 from = _ToRealSquare(move.substr(0, 2));
 		Vector2 to = _ToRealSquare(move.substr(2, 2));
 		if (m_Board[(int)to.y][(int)to.x].GetType() == PieceType::W_PAWN && from.y - to.y == 2) fen += move.substr(0, 1) + std::to_string(3) + " ";
@@ -2398,12 +3462,12 @@ std::string IBoard::_GetFEN()
 	fen += std::to_string(m_HalfMoveClock) + " ";
 
 	//fullmove number
-	fen += std::to_string(m_Moves.size() / 2 + 1);
+	fen += std::to_string(m_Moves.size() / 2 + 1 + (m_StartingFEN_Movecount == -1 ? 0 : m_StartingFEN_Movecount));
 
 	return fen;
 }
 
-std::string IBoard::_GetPGN()
+std::string IBoard::_GetPGN() const
 {
 	std::string pgn = "";
 	for (int i = 0; i < m_MovesSN.size(); i++)

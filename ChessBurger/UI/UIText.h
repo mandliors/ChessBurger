@@ -15,10 +15,10 @@ enum class UIState
 class UIText : public UIElement
 {
 public:
-	UIText(const std::string& text = "", uint32_t textSize = 0, const Vector2& position = Vector2{ 0, 0 }, const ColorBuffer& colorBuffer = Game::DefaultColorBuffer)
-		: UIElement(Rectangle{ 0, 0, 0, 0 }, colorBuffer), m_Text(text), m_TextSize(textSize), m_State(UIState::NORMAL)
+	UIText(const std::string& text = "", uint32_t textSize = 0, const Vector2& position = Vector2{ 0, 0 })
+		: UIElement(Rectangle{ 0, 0, 0, 0 }), m_Text(text), m_TextSize(textSize), m_State(UIState::NORMAL)
 	{
-		int width = MeasureTextEx(GameData::GameFont, m_Text.c_str(), m_TextSize, 0).x;
+		int width = MeasureTextEx(GameData::MainFont, m_Text.c_str(), m_TextSize, 0).x;
 		m_Padding = UITEXT_PADDING_P * textSize;
 		m_Bounds = Rectangle{ position.x, position.y, width + 2 * m_Padding, textSize + 2 * m_Padding };
 	}
@@ -26,6 +26,11 @@ public:
 	UIState GetState() const
 	{
 		return m_State;
+	}
+
+	std::string GetText() const
+	{
+		return m_Text;
 	}
 
 	void SetState(UIState state)
@@ -36,7 +41,7 @@ public:
 	void SetText(const std::string& text)
 	{
 		m_Text = text;
-		int width = MeasureTextEx(GameData::GameFont, m_Text.c_str(), m_TextSize, 0).x;
+		int width = MeasureTextEx(GameData::MainFont, m_Text.c_str(), m_TextSize, 0).x;
 		m_Bounds.width = width + 2 * m_Padding;
 	}
 
@@ -44,7 +49,7 @@ public:
 	{
 		m_TextSize = textSize;
 		m_Padding = UITEXT_PADDING_P * textSize;
-		int width = MeasureTextEx(GameData::GameFont, m_Text.c_str(), m_TextSize, 0).x;
+		int width = MeasureTextEx(GameData::MainFont, m_Text.c_str(), m_TextSize, 0).x;
 		m_Bounds.width = width + 2 * m_Padding;
 		m_Bounds.height = m_TextSize + 2 * m_Padding;
 	}
@@ -60,20 +65,20 @@ public:
 		switch (m_State)
 		{
 		case UIState::NORMAL:
-			DrawRectangleRounded(m_Bounds, 0.1f, 2, m_ColorBuffer.BgNormal);
-			DrawTextEx(GameData::GameFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, m_ColorBuffer.FgNormal);
+			DrawRectangleRounded(m_Bounds, 0.1f, 2, GameData::Colors.BgNormal);
+			DrawTextEx(GameData::MainFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, GameData::Colors.FgNormal);
 			break;
 		case UIState::HOVERED:
-			DrawRectangleRounded(m_Bounds, 0.1f, 2, m_ColorBuffer.BgHovered);
-			DrawTextEx(GameData::GameFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, m_ColorBuffer.FgHovered);
+			DrawRectangleRounded(m_Bounds, 0.1f, 2, GameData::Colors.BgHovered);
+			DrawTextEx(GameData::MainFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, GameData::Colors.FgHovered);
 			break;
 		case UIState::FOCUSED:
-			DrawRectangleRounded(m_Bounds, 0.1f, 2, m_ColorBuffer.BgFocused);
-			DrawTextEx(GameData::GameFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, m_ColorBuffer.FgFocused);
+			DrawRectangleRounded(m_Bounds, 0.1f, 2, GameData::Colors.BgFocused);
+			DrawTextEx(GameData::MainFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, GameData::Colors.FgFocused);
 			break;
 		case UIState::FOCUSED2:
-			DrawRectangleRounded(m_Bounds, 0.1f, 2, m_ColorBuffer.BgFocused2);
-			DrawTextEx(GameData::GameFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, m_ColorBuffer.FgFocused2);
+			DrawRectangleRounded(m_Bounds, 0.1f, 2, GameData::Colors.BgFocused2);
+			DrawTextEx(GameData::MainFont, m_Text.c_str(), Vector2{ m_Bounds.x + m_Padding, m_Bounds.y + m_Padding }, m_TextSize, 0, GameData::Colors.FgFocused2);
 			break;
 		}
 	}

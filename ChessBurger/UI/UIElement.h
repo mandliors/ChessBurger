@@ -9,8 +9,8 @@
 class UIElement
 {
 public:
-	UIElement(const Rectangle& bounds = Rectangle{ 0, 0, 0, 0 }, const ColorBuffer& colorBuffer = Game::DefaultColorBuffer)
-		: m_Bounds(bounds), m_ColorBuffer(colorBuffer) { }
+	UIElement(const Rectangle& bounds = Rectangle{ 0, 0, 0, 0 })
+		: m_Bounds(bounds) { }
 	~UIElement() { }
 	
 	virtual void Update() {	}
@@ -20,5 +20,4 @@ public:
 
 protected:
 	Rectangle m_Bounds;
-	ColorBuffer m_ColorBuffer;
 };

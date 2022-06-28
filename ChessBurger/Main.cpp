@@ -13,8 +13,8 @@ int main()
 	SetExitKey(-1);
 	
 	//Load GUI
-	GameData::GameFont = LoadFontEx("assets/OpenSans.ttf", 70, NULL, -1);
-	SetTextureFilter(GameData::GameFont.texture, TEXTURE_FILTER_BILINEAR);
+	GameData::MainFont = LoadFontEx("assets/OpenSans.ttf", 70, NULL, -1);
+	SetTextureFilter(GameData::MainFont.texture, TEXTURE_FILTER_BILINEAR);
 	GuiLoadStyle("assets/style.rgs");
 
 	//Loading screen
@@ -34,20 +34,18 @@ int main()
 		BeginDrawing();
 		{
 			ClearBackground(Color{ 48, 48, 48 });
-
 			if (IsKeyReleased(KEY_ESCAPE))
 			{
 				SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 				game.SetState(GameState::MAIN_MENU);
 			}
-
 			game.Update();
 		}
 		EndDrawing();
 	}
 
 	//Free resources
-	UnloadFont(GameData::GameFont);
+	UnloadFont(GameData::MainFont);
 	UnloadTexture(loadingScreen);
 
 	CloseWindow();

@@ -5,9 +5,16 @@
 #include <thread>
 #include <mutex>
 
+#define BUFFER_SIZE 8192
+//#define ENGINE_DUMP 1
+
 class Engine
 {
 public:
+	enum class Mode
+	{
+		WAIT = 0, ANALYZE, PLAY
+	};
 	struct AnalysisData
 	{
 		std::vector<std::vector<std::string>> BestLines;
@@ -21,15 +28,20 @@ public:
 	~Engine();
 
 	bool Init();
-	void Start();
+	void ResetForAnalyzing();
+	void ResetForPlaying();
+	void ResetForWaiting();
 	void SetPosition(const std::string& fen);
 	void SetPositionWithMoves(const std::string& moves);
 	void SetAnalyseMode(bool value);
+	void GoInfinite();
+	void SearchMove(uint32_t wtime, uint32_t btime, uint32_t winc, uint32_t binc);
 	void SendCommand(const std::string& command);
 	void Stop();
 	
 	std::string GetName() const;
 	const AnalysisData& GetAnalysisData() const;
+	std::string& GetBestMove();
 
 private:
 	void _Worker();
@@ -43,9 +55,10 @@ private:
 private:
 	std::string m_Name;
 	bool m_Working;
-	bool m_Read;
+	Mode m_Mode;
 	bool m_WhiteToMove;
 	AnalysisData m_AnalysisData;
+	std::string m_BestMove;
 	std::thread m_Thread;
 	std::string m_Position;
 	void* m_hProcess;

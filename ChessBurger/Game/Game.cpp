@@ -1,13 +1,8 @@
 #include "Game.h"
 #include "Board/AnalysisBoard.h"
 #include "Board/GameBoard.h"
+#include "Board/SetupBoard.h"
 #include "extras/raygui.h"
-
-ColorBuffer Game::DefaultColorBuffer =
-{
-	Color{ 245, 245, 245, 255 }, Color{ 250, 250, 250, 255 }, Color{ 80, 80, 80, 255 },    Color{ 230, 230, 230, 255 },
-	Color{ 60, 60, 60, 255 },    Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 }
-};
 
 Game::Game(GameState state)
 	: m_AnalysisBoard(nullptr), m_GameBoard(nullptr), m_State(GameState::MAIN_MENU)
@@ -18,12 +13,88 @@ Game::Game(GameState state)
 		GameData::CurrentEngine = GameData::Engines[0];
 	else
 		GameData::CurrentEngine = nullptr;
+
+	//Setup color buffer
+	GameData::Colors =
+	{
+		Color{ 245, 245, 245, 255 }, Color{ 250, 250, 250, 255 }, Color{ 80, 80, 80, 255 },    Color{ 230, 230, 230, 255 },
+		Color{ 60, 60, 60, 255 },    Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 }
+	};
+
+	//Setup texture buffer
+	GameData::Textures.Pieces[0] = LoadTexture("assets/themes/wking.png");	 SetTextureFilter(GameData::Textures.Pieces[0], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[0]);
+	GameData::Textures.Pieces[1] = LoadTexture("assets/themes/wqueen.png");	 SetTextureFilter(GameData::Textures.Pieces[1], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[1]);
+	GameData::Textures.Pieces[2] = LoadTexture("assets/themes/wrook.png");	 SetTextureFilter(GameData::Textures.Pieces[2], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[2]);
+	GameData::Textures.Pieces[3] = LoadTexture("assets/themes/wbishop.png"); SetTextureFilter(GameData::Textures.Pieces[3], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[3]);
+	GameData::Textures.Pieces[4] = LoadTexture("assets/themes/wknight.png"); SetTextureFilter(GameData::Textures.Pieces[4], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[4]);
+	GameData::Textures.Pieces[5] = LoadTexture("assets/themes/wpawn.png");   SetTextureFilter(GameData::Textures.Pieces[5], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[5]);
+	GameData::Textures.Pieces[6] = LoadTexture("assets/themes/bking.png");	 SetTextureFilter(GameData::Textures.Pieces[6], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[6]);
+	GameData::Textures.Pieces[7] = LoadTexture("assets/themes/bqueen.png");	 SetTextureFilter(GameData::Textures.Pieces[7], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[7]);
+	GameData::Textures.Pieces[8] = LoadTexture("assets/themes/brook.png");	 SetTextureFilter(GameData::Textures.Pieces[8], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[8]);
+	GameData::Textures.Pieces[9] = LoadTexture("assets/themes/bbishop.png"); SetTextureFilter(GameData::Textures.Pieces[9], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[9]);
+	GameData::Textures.Pieces[10] = LoadTexture("assets/themes/bknight.png"); SetTextureFilter(GameData::Textures.Pieces[10], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[10]);
+	GameData::Textures.Pieces[11] = LoadTexture("assets/themes/bpawn.png");	 SetTextureFilter(GameData::Textures.Pieces[11], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[11]);
+	Image darkImage = GenImageColor(200, 200, Color{ 181, 136, 99, 255 });
+	GameData::Textures.Dark = LoadTextureFromImage(darkImage);
+	UnloadImage(darkImage);
+	Image lightImage = GenImageColor(200, 200, Color{ 240, 217, 181, 255 });
+	GameData::Textures.Light = LoadTextureFromImage(lightImage);
+	UnloadImage(lightImage);
+
+	//Calculate avarage colours
+	Image darkImg = LoadImageFromTexture(GameData::Textures.Dark);
+	Color* darkColors = LoadImageColors(darkImage);
+	double pixelCount = darkImg.width * darkImg.height;
+	double r = 0, g = 0, b = 0, a = 0;
+	for (int i = 0; i < pixelCount; i++)
+	{
+		r += (double)darkColors[i].r;
+		g += (double)darkColors[i].g;
+		b += (double)darkColors[i].b;
+		a += (double)darkColors[i].a;
+	}
+	GameData::Colors.DarkAvarage.r = r / pixelCount;
+	GameData::Colors.DarkAvarage.g = g / pixelCount;
+	GameData::Colors.DarkAvarage.b = b / pixelCount;
+	GameData::Colors.DarkAvarage.a = a / pixelCount;
+	UnloadImageColors(darkColors);
+	UnloadImage(darkImg);
+	Image lightImg = LoadImageFromTexture(GameData::Textures.Light);
+	Color* lightColors = LoadImageColors(lightImg);
+	pixelCount = lightImg.width * lightImg.height;
+	r = 0, g = 0, b = 0, a = 0;
+	for (int i = 0; i < pixelCount; i++)
+	{
+		r += (double)lightColors[i].r;
+		g += (double)lightColors[i].g;
+		b += (double)lightColors[i].b;
+		a += (double)lightColors[i].a;
+	}
+	GameData::Colors.LightAvarage.r = r / pixelCount;
+	GameData::Colors.LightAvarage.g = g / pixelCount;
+	GameData::Colors.LightAvarage.b = b / pixelCount;
+	GameData::Colors.LightAvarage.a = a / pixelCount;
+	UnloadImageColors(lightColors);
+	UnloadImage(lightImg);
+
+	//Initialite audio
+	InitAudioDevice();
 	
+	//Setup sound buffer
+	GameData::Sounds.MoveSound = LoadSound("assets/sounds/move.mp3");
+	GameData::Sounds.CaptureSound = LoadSound("assets/sounds/capture.mp3");
+	GameData::Sounds.CastleSound = LoadSound("assets/sounds/castle.mp3");
+	GameData::Sounds.CheckSound = LoadSound("assets/sounds/check.mp3");
+	GameData::Sounds.WinSound = LoadSound("assets/sounds/win.mp3");
+	GameData::Sounds.LoseSound = LoadSound("assets/sounds/lose.mp3");
+	GameData::Sounds.DrawSound = LoadSound("assets/sounds/draw.mp3");
+
 	//Setup boards
-	m_AnalysisBoard = new AnalysisBoard(DefaultColorBuffer, Rectangle{ 0, 0, 1280, 720 });
+	m_AnalysisBoard = new AnalysisBoard(Rectangle{ 0, 0, 1280, 720 }, this);
 	m_AnalysisBoard->Reset();
-	m_GameBoard = new GameBoard(DefaultColorBuffer, Rectangle{ 0, 0, 1280, 720 });
+	m_GameBoard = new GameBoard(Rectangle{ 0, 0, 1280, 720 }, this);
 	m_GameBoard->Reset();
+	m_SetupBoard = new SetupBoard(Rectangle{ 0, 0, 1280, 720 }, this);
 
 	SetState(state);
 }
@@ -35,10 +106,26 @@ Game::~Game()
 
 	for (int i = 0; i < GameData::Engines.size(); i++)
 		delete GameData::Engines[i];
+
+	for (int i = 0; i < 12; i++)
+		UnloadTexture(GameData::Textures.Pieces[i]);
+	UnloadTexture(GameData::Textures.Dark);
+	UnloadTexture(GameData::Textures.Light);
+
+	UnloadSound(GameData::Sounds.MoveSound);
+	UnloadSound(GameData::Sounds.CaptureSound);
+	UnloadSound(GameData::Sounds.CastleSound);
+	UnloadSound(GameData::Sounds.CheckSound);
+	UnloadSound(GameData::Sounds.WinSound);
+	UnloadSound(GameData::Sounds.LoseSound);
+	UnloadSound(GameData::Sounds.DrawSound);
+
+	CloseAudioDevice();
 }
 
 void Game::SetState(GameState state)
 {
+	GameData::CurrentEngine->Stop();
 	m_State = state;
 	switch (m_State)
 	{
@@ -48,6 +135,7 @@ void Game::SetState(GameState state)
 		SetWindowSize(800, 600);
 		ClearWindowState(FLAG_WINDOW_RESIZABLE);
 		CenterScreen();
+		GameData::CurrentEngine->ResetForWaiting();
 		break;
 	}
 	case GameState::ANALYSIS_BOARD:
@@ -55,15 +143,27 @@ void Game::SetState(GameState state)
 		SetWindowState(FLAG_WINDOW_RESIZABLE);
 		MaximizeWindow();
 		m_AnalysisBoard->Reset();
+		m_AnalysisBoard->LoadFEN(STARTPOS_FEN);
 		m_AnalysisBoard->UpdateBounds();
+		GameData::CurrentEngine->ResetForAnalyzing();
+		GameData::CurrentEngine->GoInfinite();
 		break;
 	}
-	case GameState::GAME_ROOM:
+	case GameState::GAME_BOARD:
 	{
 		SetWindowState(FLAG_WINDOW_RESIZABLE);
 		MaximizeWindow();
 		m_GameBoard->Reset();
 		m_GameBoard->UpdateBounds();
+		GameData::CurrentEngine->ResetForPlaying();
+		break;
+	}
+	case GameState::SETUP_BOARD:
+	{
+		SetWindowState(FLAG_WINDOW_RESIZABLE);
+		MaximizeWindow();
+		m_SetupBoard->Reset();
+		m_SetupBoard->UpdateBounds();
 		break;
 	}
 	case GameState::SETTINGS:
@@ -87,13 +187,31 @@ void Game::Update()
 	case GameState::ANALYSIS_BOARD:
 		_AnalysisBoard();
 		break;
-	case GameState::GAME_ROOM:
-		_GameRoom();
+	case GameState::GAME_BOARD:
+		_GameBoard();
+		break;
+	case GameState::SETUP_BOARD:
+		_SetupBoard();
 		break;
 	case GameState::SETTINGS:
 		_Settings();
 		break;
 	}
+}
+
+AnalysisBoard* Game::GetAnalysisBoard() const
+{
+	return m_AnalysisBoard;
+}
+
+GameBoard* Game::GetGameBoard() const
+{
+	return m_GameBoard;
+}
+
+SetupBoard* Game::GetSetupBoard() const
+{
+	return m_SetupBoard;
 }
 
 void Game::CenterScreen()
@@ -103,17 +221,21 @@ void Game::CenterScreen()
 
 void Game::_MainMenu()
 {
-	DrawTextEx(GameData::GameFont, "ChessBurger", Vector2{ 200, 60 }, 70, 0, RAYWHITE);
-	DrawTextEx(GameData::GameFont, "by Progmaster", Vector2{ 520, 85 }, 40, 0, RAYWHITE);
+	DrawTextEx(GameData::MainFont, "ChessBurger", Vector2{ 200, 60 }, 70, 0, RAYWHITE);
+	DrawTextEx(GameData::MainFont, "by Progmaster", Vector2{ 520, 85 }, 40, 0, RAYWHITE);
 
-	Rectangle mainMenuButton{ 260, 200, 280, 80 };
-	Rectangle gameRoomButton{ 270, 300, 260, 80 };
-	Rectangle settingsButton{ 280, 400, 240, 80 };
+	Rectangle analysisBoardButton{ 260, 200, 300, 70 };
+	Rectangle gameBoardButton{ 270, 280, 280, 70 };
+	Rectangle setupBoardButton{ 265, 360, 290, 70 };
+	Rectangle settingsButton{ 280, 440, 260, 70 };
 
-	if (GuiButton(mainMenuButton, "Analysis Board"))
+	GuiSetStyle(DEFAULT, TEXT_SIZE, 32);
+	if (GuiButton(analysisBoardButton, "Analysis Board"))
 		SetState(GameState::ANALYSIS_BOARD);
-	else if (GuiButton(gameRoomButton, "Game Room"))
-		SetState(GameState::GAME_ROOM);
+	else if (GuiButton(gameBoardButton, "Game Board"))
+		SetState(GameState::GAME_BOARD);
+	else if (GuiButton(setupBoardButton, "Setup Board"))
+		SetState(GameState::SETUP_BOARD);
 	else if (GuiButton(settingsButton, "Settings"))
 		SetState(GameState::SETTINGS);
 }
@@ -124,10 +246,16 @@ void Game::_AnalysisBoard()
 	m_AnalysisBoard->Draw();
 }
 
-void Game::_GameRoom()
+void Game::_GameBoard()
 {
 	m_GameBoard->Update();
 	m_GameBoard->Draw();
+}
+
+void Game::_SetupBoard()
+{
+	m_SetupBoard->Update();
+	m_SetupBoard->Draw();
 }
 
 void Game::_Settings()

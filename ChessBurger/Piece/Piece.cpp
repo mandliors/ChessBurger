@@ -6,10 +6,10 @@
 uint32_t Piece::Size;
 
 Piece::Piece(PieceType type, const Vector2& position)
-	: m_Type(type), m_Position(position), m_PreviousPosition(position), m_NextPosition(position), m_MoveCount(0), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0.0), m_Drag(false), m_Animating(false) { }
+	: m_Type(type), m_Position(position), m_PreviousPosition(position), m_NextPosition(position), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0.0), m_Drag(false), m_Animating(false) { }
 
 Piece::Piece()
-	: m_Type(PieceType::NONE), m_Position(Vector2{ 0, 0 }), m_PreviousPosition(Vector2{ 0, 0 }), m_NextPosition(Vector2{ 0, 0 }), m_MoveCount(0), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0), m_Drag(false), m_Animating(false) { }
+	: m_Type(PieceType::NONE), m_Position(Vector2{ 0, 0 }), m_PreviousPosition(Vector2{ 0, 0 }), m_NextPosition(Vector2{ 0, 0 }), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0), m_Drag(false), m_Animating(false) { }
 
 void Piece::Update()
 {
@@ -77,7 +77,10 @@ void Piece::SetType(PieceType type)
 
 Vector2 Piece::GetPosition() const
 {
-	return m_Position;
+	if (m_Animating)
+		return m_NextPosition;
+	else
+		return m_Position;
 }
 
 void Piece::SetPosition(const Vector2& position)
@@ -111,19 +114,14 @@ Vector2 Piece::GetPreviousPosition() const
 	return m_PreviousPosition;
 }
 
-void Piece::AddToMoveCount(int amount)
+void Piece::SetHasMoved(bool value)
 {
-	m_MoveCount += amount;
+	m_HasMoved = value;
 }
 
-void Piece::SetMoveCount(uint32_t count)
+bool Piece::GetHasMoved() const
 {
-	m_MoveCount = count;
-}
-
-uint32_t Piece::GetMoveCount() const
-{
-	return m_MoveCount;
+	return m_HasMoved;
 }
 
 int8_t Piece::GetSide() const

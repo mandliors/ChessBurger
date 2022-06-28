@@ -7,8 +7,8 @@
 
 enum class PieceType
 {
-	NONE = -1, W_PAWN, W_KNIGHT, W_BISHOP, W_ROOK, W_QUEEN, W_KING,
-			   B_PAWN, B_KNIGHT, B_BISHOP, B_ROOK, B_QUEEN, B_KING
+	NONE = -1, W_KING, W_QUEEN, W_ROOK, W_BISHOP, W_KNIGHT, W_PAWN,
+			   B_KING, B_QUEEN, B_ROOK, B_BISHOP, B_KNIGHT, B_PAWN, COUNT
 };
 
 class Piece
@@ -35,9 +35,8 @@ public:
 	void StartAnimation(const Vector2& position);
 	void StopAnimation();
 
-	void AddToMoveCount(int amount);
-	uint32_t GetMoveCount() const;
-	void SetMoveCount(uint32_t count);
+	void SetHasMoved(bool value);
+	bool GetHasMoved() const;
 
 	int8_t GetSide() const;
 	void TellBoardBounds(const Rectangle& boardBounds);
@@ -51,10 +50,10 @@ private:
 	Vector2 m_Position;
 	Vector2 m_PreviousPosition;
 	Vector2 m_NextPosition;
-	uint32_t m_MoveCount;
 	Rectangle m_BoardBounds;
 	double m_StartTime;
 	double m_CurrentTime;
+	bool m_HasMoved;
 	bool m_Drag;
 	bool m_Animating;
 };

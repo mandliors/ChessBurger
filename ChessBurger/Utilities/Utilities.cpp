@@ -1,4 +1,6 @@
 #include "Utilities.h"
+#include <windows.h>
+#include <winuser.h>
 #include <sstream>
 
 namespace Utils
@@ -47,6 +49,17 @@ namespace Utils
 		while (it != s.end() && std::isdigit(*it)) ++it;
 		return !s.empty() && it == s.end();
 	}
+
+	int _Mbox()
+	{
+		return MessageBox(
+			NULL,
+			(LPCWSTR)L"Resource not available\nDo you want to try again?",
+			(LPCWSTR)L"Account Details",
+			MB_ICONWARNING | MB_CANCELTRYCONTINUE | MB_DEFBUTTON2
+		);
+	}
+
 }
 
 namespace Math
