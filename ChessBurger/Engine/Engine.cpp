@@ -1,9 +1,8 @@
 #include "Engine.h"
 #include "GameData/GameData.h"
 #include "Utilities/Utilities.h"
-#include <Windows.h>
-#include <time.h>
 #include <algorithm>
+#include <Windows.h>
 
 #ifdef ENGINE_DUMP
 	#include <iostream>

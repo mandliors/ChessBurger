@@ -100,8 +100,6 @@ void AnalysisBoard::UpdateBounds()
 			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
 		}
 	}
-
-	PlaySound(GameData::Sounds.DrawSound);
 }
 
 void AnalysisBoard::Draw() const

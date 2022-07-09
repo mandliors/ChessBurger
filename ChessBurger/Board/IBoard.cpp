@@ -1146,9 +1146,9 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 		if (playSound)
 		{
 			if (capture)
-				PlaySound(GameData::Sounds.CaptureSound);
+				PlayASound(GameData::Sounds.CaptureSound);
 			else
-				PlaySound(GameData::Sounds.MoveSound);
+				PlayASound(GameData::Sounds.MoveSound);
 		}
 	}
 }
@@ -1272,7 +1272,7 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 
 			//Play sound
 			if (playSound)
-				PlaySound(GameData::Sounds.CastleSound);
+				PlayASound(GameData::Sounds.CastleSound);
 		}
 
 	}
@@ -1309,7 +1309,7 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 
 			//Play sound
 			if (playSound)
-				PlaySound(GameData::Sounds.CastleSound);
+				PlayASound(GameData::Sounds.CastleSound);
 		}
 
 	}
@@ -3384,7 +3384,7 @@ Vector2 IBoard::_ToRealSquare(const std::string& move) const
 
 Vector2 IBoard::_GetSquare(const Vector2& position) const
 {
-	Vector2 square{ std::floor((position.x - m_BoardBounds.x) / m_SquareSize), std::floor((position.y - m_BoardBounds.y) / m_SquareSize) };
+	Vector2 square{ (position.x - m_BoardBounds.x) / m_SquareSize, (position.y - m_BoardBounds.y) / m_SquareSize };
 	if (m_Flipped)
 	{
 		square.x = 7 - square.x;
@@ -3395,7 +3395,7 @@ Vector2 IBoard::_GetSquare(const Vector2& position) const
 
 Vector2 IBoard::_GetRealSquare(const Vector2& position) const
 {
-	return Vector2{ std::floor((position.x - m_BoardBounds.x) / m_SquareSize), std::floor((position.y - m_BoardBounds.y) / m_SquareSize) };
+	return Vector2{ (position.x - m_BoardBounds.x) / m_SquareSize, (position.y - m_BoardBounds.y) / m_SquareSize };
 }
 
 std::string IBoard::_MovesToString() const

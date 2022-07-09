@@ -145,7 +145,7 @@ bool ExportWave(Wave wave, const char *fileName);               // Export wave d
 bool ExportWaveAsCode(Wave wave, const char *fileName);         // Export wave sample data to code (.h), returns true on success
 
 // Wave/Sound management functions
-void PlaySound(Sound sound);                                    // Play a sound
+void PlayASound(Sound sound);                                    // Play a sound
 void StopSound(Sound sound);                                    // Stop playing a sound
 void PauseSound(Sound sound);                                   // Pause a sound
 void ResumeSound(Sound sound);                                  // Resume a paused sound

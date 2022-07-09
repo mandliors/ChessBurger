@@ -60,7 +60,15 @@ void SetupBoard::Update()
 	if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
 	{
 		if (m_DraggedPiece)
-			_Move(_GetRealSquare(m_DraggedPiece->GetPreviousPosition()), _GetSquare(GetMousePosition()), false, false);
+		{
+			if (CheckCollisionPointRec(mousePosition, m_BoardBounds))
+				_Move(_GetRealSquare(m_DraggedPiece->GetPreviousPosition()), _GetSquare(mousePosition), false, false);
+			else
+			{
+				Vector2 square = _GetRealSquare(m_DraggedPiece->GetPreviousPosition());
+				m_Board[(int)square.y][(int)square.x].SetType(PieceType::NONE);
+			}
+		}
 		
 		m_Highlights.clear();
 		m_Arrows.clear();
