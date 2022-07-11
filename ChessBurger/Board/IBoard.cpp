@@ -3384,7 +3384,7 @@ Vector2 IBoard::_ToRealSquare(const std::string& move) const
 
 Vector2 IBoard::_GetSquare(const Vector2& position) const
 {
-	Vector2 square{ (position.x - m_BoardBounds.x) / m_SquareSize, (position.y - m_BoardBounds.y) / m_SquareSize };
+	Vector2 square{ (int)((position.x - m_BoardBounds.x) / m_SquareSize), (int)((position.y - m_BoardBounds.y) / m_SquareSize) };
 	if (m_Flipped)
 	{
 		square.x = 7 - square.x;
@@ -3395,7 +3395,7 @@ Vector2 IBoard::_GetSquare(const Vector2& position) const
 
 Vector2 IBoard::_GetRealSquare(const Vector2& position) const
 {
-	return Vector2{ (position.x - m_BoardBounds.x) / m_SquareSize, (position.y - m_BoardBounds.y) / m_SquareSize };
+	return Vector2{ (float)((int)((position.x - m_BoardBounds.x) / m_SquareSize)), (float)((int)((position.y - m_BoardBounds.y) / m_SquareSize)) };
 }
 
 std::string IBoard::_MovesToString() const
