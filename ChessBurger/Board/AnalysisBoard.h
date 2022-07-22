@@ -5,15 +5,16 @@
 
 //Positional definitions
 #define MOVELIST_WIDTH_P 0.6f
-#define EVALBAR_WIDTH_A 20
+#define EVALBAR_WIDTH 20
 #define DISTANCE_EB 10
 #define DISTANCE_BM 20
-#define BESTLINES_HEIGHT_P 0.25f
 
 //Movelist definitions
 #define MOVELIST_PADDING 10
 #define MOVELIST_SPACING 6
 #define MOVELIST_UITEXT_SIZE 24
+#define MOVELIST_MOVE_HEIGHT 30
+#define MOVELIST_MOVENUMBER_WIDTH 60
 
 //BestLines definitions
 #define BESTLINES_PADDING 10
@@ -33,7 +34,10 @@ public:
 	void Update() override;
 	void UpdateBounds() override;
 	void Draw() const override;
-	void Reset(bool resetEnginePosition= true) override;
+	void Reset(bool resetEnginePosition = true) override;
+
+protected:
+	bool _Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated = false, bool updateEnginePosition = true) override;
 
 private:
 	//UI functions
@@ -56,7 +60,9 @@ private:
 
 	//Movelist
 	Rectangle m_Movelist_Bounds;
-	std::vector<UIText> m_Movelist_UITexts;
+	Rectangle m_MovelistContent_Bounds;
+	Vector2 m_Movelist_Scroll;
+	bool m_UpdateScrollbar;
 
 	//BestLines
 	Rectangle m_BestLines_Bounds;

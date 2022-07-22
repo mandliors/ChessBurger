@@ -4,10 +4,20 @@
 #include "Utilities/Utilities.h"
 
 AnalysisBoard::AnalysisBoard(const Rectangle& bounds, Game* owner)
-	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_EvalBar_Bounds({}), m_Movelist_Bounds({}), m_Movelist_UITexts({}), m_BestLines_Bounds({}), m_BestLines_UITexts({})
+	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_EvalBar_Bounds({}), m_Movelist_Bounds({}), m_MovelistContent_Bounds({}), m_Movelist_Scroll({}), m_UpdateScrollbar(false), m_BestLines_Bounds({}), m_BestLines_UITexts({})
 {
 	m_AnalyseMode = true;
 	m_ShowNametag = false;
+
+	GuiSetStyle(SCROLLBAR, BORDER_WIDTH, 1);
+	GuiSetStyle(SCROLLBAR, ARROWS_VISIBLE, false);
+
+	GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(GameData::Colors.BgNormal));
+
+	GuiSetStyle(LISTVIEW, GUI_STATE_NORMAL * 3, ColorToInt(GameData::Colors.BgNormal));
+	GuiSetStyle(LISTVIEW, GUI_STATE_DISABLED * 3, ColorToInt(GameData::Colors.BgNormal));
+	GuiSetStyle(LISTVIEW, GUI_STATE_FOCUSED * 3, ColorToInt(GameData::Colors.BgNormal));
+	GuiSetStyle(LISTVIEW, GUI_STATE_PRESSED * 3, ColorToInt(GameData::Colors.BgNormal));
 }
 AnalysisBoard::~AnalysisBoard()
 {
@@ -53,27 +63,30 @@ void AnalysisBoard::UpdateBounds()
 {
 	//Try to match height
 	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag;
-	float totalWidth = EVALBAR_WIDTH_A + DISTANCE_EB + boardSize + DISTANCE_BM + boardSize * MOVELIST_WIDTH_P;
+	float totalWidth = EVALBAR_WIDTH + DISTANCE_EB + boardSize + DISTANCE_BM + boardSize * MOVELIST_WIDTH_P;
 	//Match height
 	if (totalWidth < GetScreenWidth())
 	{
 		float offset = (GetScreenWidth() - totalWidth) * 0.5f;
-		m_EvalBar_Bounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH_A, boardSize };
-		m_BoardBounds = Rectangle{ m_EvalBar_Bounds.x + EVALBAR_WIDTH_A + DISTANCE_EB, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, boardSize * BESTLINES_HEIGHT_P };
+		m_EvalBar_Bounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH, boardSize };
+		m_BoardBounds = Rectangle{ m_EvalBar_Bounds.x + EVALBAR_WIDTH + DISTANCE_EB, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 2.0f * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING };
 		m_Movelist_Bounds = Rectangle{ m_BestLines_Bounds.x, m_BestLines_Bounds.y + m_BestLines_Bounds.height, m_BestLines_Bounds.width, boardSize - m_BestLines_Bounds.height };
+		m_MovelistContent_Bounds = m_Movelist_Bounds;
 	}
 	//Match width
 	else
 	{
-		boardSize = (GetScreenWidth() - EVALBAR_WIDTH_A - DISTANCE_EB - DISTANCE_BM) / (1.0f + MOVELIST_WIDTH_P);
+		boardSize = (GetScreenWidth() - EVALBAR_WIDTH - DISTANCE_EB - DISTANCE_BM) / (1.0f + MOVELIST_WIDTH_P);
 		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
-		m_EvalBar_Bounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH_A, boardSize };
-		m_BoardBounds = Rectangle{ EVALBAR_WIDTH_A + DISTANCE_EB, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, boardSize * BESTLINES_HEIGHT_P };
+		m_EvalBar_Bounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH, boardSize };
+		m_BoardBounds = Rectangle{ EVALBAR_WIDTH + DISTANCE_EB, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 2.0f * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING };
 		m_Movelist_Bounds = Rectangle{ m_BestLines_Bounds.x, m_BestLines_Bounds.y + m_BestLines_Bounds.height, m_BestLines_Bounds.width, boardSize - m_BestLines_Bounds.height };
+		m_MovelistContent_Bounds = m_Movelist_Bounds;
 	}
 	m_SquareSize = boardSize / 8.0f;
+	GuiSetStyle(LISTVIEW, SCROLLBAR_WIDTH, m_Movelist_Bounds.width * 0.04f);
 
 	//Update guides
 	IGuide::Size = m_SquareSize;
@@ -100,6 +113,8 @@ void AnalysisBoard::UpdateBounds()
 			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
 		}
 	}
+
+	m_UpdateScrollbar = true;
 }
 
 void AnalysisBoard::Draw() const
@@ -122,8 +137,13 @@ void AnalysisBoard::Draw() const
 void AnalysisBoard::Reset(bool resetEnginePosition)
 {
 	IBoard::Reset(resetEnginePosition);
-	m_Movelist_UITexts.clear();
 	m_BestLines_UITexts.clear();
+}
+
+bool AnalysisBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
+{
+	m_UpdateScrollbar = true;
+	return IBoard::_Move(fromSquare, toSquare, animated, updateEnginePosition);
 }
 
 void AnalysisBoard::EvalBar_Draw() const
@@ -145,74 +165,84 @@ void AnalysisBoard::EvalBar_Draw() const
 
 void AnalysisBoard::Movelist_Update()
 {
-	//Update UITexts
-	if (m_Moves.size() != m_Movelist_UITexts.size())
-		m_Movelist_UITexts.resize(m_Moves.size());
+	m_MovelistContent_Bounds.height = (m_Moves.size() / 2 + m_Moves.size() % 2) * MOVELIST_MOVE_HEIGHT;
 
-	for (int i = 0; i < m_Movelist_UITexts.size(); i++)
-		m_Movelist_UITexts[i].SetState(UIState::NORMAL);
+	if (m_MovelistContent_Bounds.height > m_Movelist_Bounds.height - 2 * GuiGetStyle(DEFAULT, BORDER_WIDTH))
+		m_MovelistContent_Bounds.width = m_Movelist_Bounds.width - 2 - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH);
+	else
+		m_MovelistContent_Bounds.width = m_Movelist_Bounds.width - 2;
 
-	if (m_Moves.size() > 0)
-		m_Movelist_UITexts[m_MoveIndex].SetState(UIState::FOCUSED);
-
-	int xOffset = 0;
-	int yOffset = MOVELIST_PADDING;
-	Vector2 mousePos = GetMousePosition();
-	for (int i = 0; i < m_Movelist_UITexts.size(); i++)
+	//Clicked on a move from the movelist
+	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), m_Movelist_Bounds) && CheckCollisionPointRec(GetMousePosition(), m_MovelistContent_Bounds) && GetMouseX() > m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH)
 	{
-		//Set size, text and position
-		UIText& text = m_Movelist_UITexts[i];
-		text.SetTextSize(MOVELIST_UITEXT_SIZE);
-		text.SetText(m_MovesSN[i]);
-		float w = text.GetBounds().width;
-		if (xOffset + w > m_Movelist_Bounds.width)
+		int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+		int newMoveIndex = std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width);
+		if (newMoveIndex != m_MoveIndex && newMoveIndex < m_Moves.size())
 		{
-			xOffset = MOVELIST_PADDING;
-			yOffset += text.GetBounds().height + MOVELIST_SPACING;
+			m_MoveIndex = newMoveIndex;
+			_ReloadBoard(false);
 		}
-		else
-			xOffset += MOVELIST_SPACING;
-		text.SetPosition(Vector2{ m_Movelist_Bounds.x + xOffset, m_Movelist_Bounds.y + yOffset });
-		xOffset += w;
+	}
 
-		//Set state
-		if (CheckCollisionPointRec(mousePos, text.GetBounds()))
-		{
-			if (text.GetState() != UIState::FOCUSED)
-			{
-				//Click
-				if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && i != m_MoveIndex)
-				{
-					if ((m_StartingFEN_Movecount == -1 || text.GetText() != "...") && CheckCollisionPointRec(m_MouseDownPosition, text.GetBounds()))
-					{
-						text.SetState(UIState::FOCUSED);
-						m_MouseDownPosition = Vector2{ -1, -1 };
-						m_Movelist_UITexts[m_MoveIndex].SetState(UIState::NORMAL);
-						m_MoveIndex = i;
-						_ReloadBoard(false);
-					}
-				}
-				//Hover
-				else
-					text.SetState(UIState::HOVERED);
-			}
-		}
+	if (m_UpdateScrollbar)
+	{
+		m_Movelist_Scroll.y = m_Movelist_Bounds.height - m_MovelistContent_Bounds.height - 1;
+		m_UpdateScrollbar = false;
 	}
 }
 
 void AnalysisBoard::Movelist_Draw() const
 {
-	DrawRectangle(m_Movelist_Bounds.x, m_Movelist_Bounds.y, m_Movelist_Bounds.width, m_Movelist_Bounds.height, GameData::Colors.BgNormal);
-	for (int i = 0; i < m_Movelist_UITexts.size(); i++)
-		m_Movelist_UITexts[i].Draw();
+	DrawRectangleRec(m_Movelist_Bounds, GameData::Colors.BgNormal);
+	Rectangle view = GuiScrollPanel(m_Movelist_Bounds, m_MovelistContent_Bounds, (Vector2*) &m_Movelist_Scroll);
+
+	BeginScissorMode(view.x, view.y, view.width, view.height);
+	int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+	
+	//Draw move numbers
+	float x;
+	for (int i = 0; i < m_Moves.size() / 2 + m_Moves.size() % 2; i++)
+	{
+		DrawRectangle(m_Movelist_Bounds.x, m_Movelist_Bounds.y + m_Movelist_Scroll.y + i * MOVELIST_MOVE_HEIGHT, MOVELIST_MOVENUMBER_WIDTH - 2, MOVELIST_MOVE_HEIGHT, GameData::Colors.BgHovered);
+		if (i < 9)
+			x = m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH * 0.5f - MOVELIST_MOVE_HEIGHT * 0.25f;
+		else if (i < 99)
+			x = m_Movelist_Bounds.x + (MOVELIST_MOVENUMBER_WIDTH - MOVELIST_MOVE_HEIGHT) * 0.5f;
+		else
+			x = m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH * 0.5f - MOVELIST_MOVE_HEIGHT * 0.75f;
+		DrawTextEx(GameData::MainFont, std::to_string(i + 1).c_str(), Vector2{ x, m_Movelist_Bounds.y + m_Movelist_Scroll.y + i * MOVELIST_MOVE_HEIGHT }, MOVELIST_MOVE_HEIGHT, 0.0f, Fade(GameData::Colors.FgHovered, 0.5f));
+	}
+
+	//Draw current move
+	DrawRectangle(m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (m_MoveIndex % 2 == 0 ? 0 : width), m_Movelist_Bounds.y + m_Movelist_Scroll.y + m_MoveIndex / 2 * MOVELIST_MOVE_HEIGHT, width, MOVELIST_MOVE_HEIGHT, GameData::Colors.BgFocused);
+
+	//Draw mouse hover move
+	if (CheckCollisionPointRec(GetMousePosition(), m_Movelist_Bounds) && CheckCollisionPointRec(GetMousePosition(), m_MovelistContent_Bounds) && GetMouseX() > m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH)
+	{
+		int offset = (int)((((int)m_Movelist_Scroll.y - 1) / MOVELIST_MOVE_HEIGHT + 1) * MOVELIST_MOVE_HEIGHT + m_Movelist_Scroll.y - 1) % MOVELIST_MOVE_HEIGHT;
+		if (std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width) < m_Moves.size())
+		{
+			DrawRectangle(m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width ? width : 0), m_Movelist_Bounds.y + std::floor((GetMouseY() - offset - m_Movelist_Bounds.y) / MOVELIST_MOVE_HEIGHT) * MOVELIST_MOVE_HEIGHT + offset + 1, width, MOVELIST_MOVE_HEIGHT, Fade(GameData::Colors.BgFocused, 0.5f));
+		}
+	}
+
+	//Draw moves
+	for (int i = 0; i < m_Moves.size(); i++)
+		DrawTextEx(GameData::MainFont, m_MovesSN[i].c_str(), Vector2{ m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (i % 2) * width, m_Movelist_Bounds.y + m_Movelist_Scroll.y + (i / 2) * MOVELIST_MOVE_HEIGHT}, MOVELIST_MOVE_HEIGHT, 0.0f, GameData::Colors.FgNormal);
+	
+	//Redraw current move with  different color
+	if (m_MoveIndex > -1)
+		DrawTextEx(GameData::MainFont, m_MovesSN[m_MoveIndex].c_str(), Vector2{ m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (m_MoveIndex % 2) * width, m_Movelist_Bounds.y + m_Movelist_Scroll.y + (m_MoveIndex / 2) * MOVELIST_MOVE_HEIGHT }, MOVELIST_MOVE_HEIGHT, 0.0f, GameData::Colors.FgFocused);
+
+	EndScissorMode();
 }
 
 bool AnalysisBoard::Movelist_CheckCursor() const
 {
 	Vector2 mousePos = GetMousePosition();
-	for (int i = 0; i < m_Movelist_UITexts.size(); i++)
-		if (CheckCollisionPointRec(mousePos, m_Movelist_UITexts[i].GetBounds()))
-			return true;
+	int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+	if (CheckCollisionPointRec(mousePos, m_Movelist_Bounds) && CheckCollisionPointRec(mousePos, m_MovelistContent_Bounds) && std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width) < m_Moves.size())
+		return true;
 	return false;
 }
 
@@ -286,7 +316,7 @@ void AnalysisBoard::BestLines_Update()
 				if (CheckCollisionPointRec(m_MouseDownPosition, eval.GetBounds()) && analysisData.BestLines[i].size() > 0)
 				{
 					m_MouseDownPosition = Vector2{ -1, -1 };
-					_Move(analysisData.BestLines[i][0]);
+					IBoard::_Move(analysisData.BestLines[i][0]);
 					reload = true;
 				}
 			}
@@ -326,7 +356,7 @@ void AnalysisBoard::BestLines_Update()
 						{
 							m_MouseDownPosition = Vector2{ -1, -1 };
 							for (int x = 0; x < j; x++)
-								_Move(analysisData.BestLines[i][x]);
+								IBoard::_Move(analysisData.BestLines[i][x]);
 							reload = true;
 						}
 					}

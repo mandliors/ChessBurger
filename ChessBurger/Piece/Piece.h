@@ -7,8 +7,8 @@
 
 enum class PieceType
 {
-	NONE = -1, W_KING, W_QUEEN, W_ROOK, W_BISHOP, W_KNIGHT, W_PAWN,
-			   B_KING, B_QUEEN, B_ROOK, B_BISHOP, B_KNIGHT, B_PAWN, COUNT
+	NONE = -1, W_KING, W_QUEEN, W_BISHOP, W_KNIGHT, W_ROOK, W_PAWN,
+			   B_KING, B_QUEEN, B_BISHOP, B_KNIGHT, B_ROOK, B_PAWN, COUNT
 };
 
 class Piece
@@ -19,8 +19,8 @@ public:
 	Piece(PieceType type, const Vector2& position);
 
 	void Update();
-	void Draw(const Texture2D& texture) const;
-	void DrawFlipped(const Texture2D& texture) const;
+	void Draw() const;
+	void DrawFlipped() const;
 
 	bool GetDrag() const;
 	void SetDrag(bool drag);

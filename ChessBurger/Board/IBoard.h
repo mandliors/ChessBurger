@@ -10,7 +10,7 @@
 #include <vector>
 #include <unordered_map>
 
-#define PIECE_SIZE_P 1.0f
+#define PIECE_SIZE_P 0.95f
 #define NAMETAG_HEIGHT_A 60
 #define PLAYER_IMAGE_SIZE_A (NAMETAG_HEIGHT_A - 10)
 #define STARTPOS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

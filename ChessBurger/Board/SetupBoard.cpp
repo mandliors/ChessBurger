@@ -294,13 +294,13 @@ void SetupBoard::Draw() const
 		{
 			const Piece& piece = m_Board[i][j];
 			if (piece.GetType() != PieceType::NONE && !piece.GetDrag())
-				m_Flipped ? piece.DrawFlipped(GameData::Textures.Pieces[(int)piece.GetType()]) : piece.Draw(GameData::Textures.Pieces[(int)piece.GetType()]);
+				m_Flipped ? piece.DrawFlipped() : piece.Draw();
 		}
 	}
 
 	//Draw dragged move
 	if (m_DraggedPiece)
-		m_DraggedPiece->Draw(GameData::Textures.Pieces[(int)m_DraggedPiece->GetType()]);
+		m_DraggedPiece->Draw();
 
 	//Draw arrows
 	for (int i = 0; i < m_Arrows.size(); i++)
@@ -451,17 +451,11 @@ void SetupBoard::SetupPieces_Draw() const
 		DrawRectangle(m_BoardBounds.x, m_SetupWhitePiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
 	}
 
-	//Draw white setup pieces
+	//Draw setup pieces
 	for (int i = 0; i < 6; i++)
 	{
-		float scale = width / (float)GameData::Textures.Pieces[i].width;
-		DrawTextureEx(GameData::Textures.Pieces[i], Vector2{ m_BoardBounds.x + (i + 1) * width, !m_Flipped ? m_SetupWhitePiecesY : m_SetupBlackPiecesY}, 0.0f, scale, WHITE);
-	}
-	//Draw black setup pieces
-	for (int i = 0; i < 6; i++)
-	{
-		float scale = width / (float)GameData::Textures.Pieces[i + 6].width;
-		DrawTextureEx(GameData::Textures.Pieces[i + 6], Vector2{ m_BoardBounds.x + (i + 1) * width, !m_Flipped ? m_SetupBlackPiecesY : m_SetupWhitePiecesY }, 0.0f, scale, WHITE);
+		DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[i], Rectangle{ m_BoardBounds.x + (i + 1) * width, !m_Flipped ? m_SetupWhitePiecesY : m_SetupBlackPiecesY, width, width }, { 0, 0 }, 0.0f, WHITE);
+		DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[i + 6], Rectangle{ m_BoardBounds.x + (i + 1) * width, !m_Flipped ? m_SetupBlackPiecesY : m_SetupWhitePiecesY, width, width }, { 0, 0 }, 0.0f, WHITE);
 	}
 
 	//Draw pointer and dustbin
@@ -472,10 +466,7 @@ void SetupBoard::SetupPieces_Draw() const
 
 	//Draw dragged piece
 	if (m_DragSetupPiece && m_SelectedPieceType != PieceType::NONE)
-	{
-		float scale = (float)Piece::Size / GameData::Textures.Pieces[(int)m_SelectedPieceType].width;
-		DrawTextureEx(GameData::Textures.Pieces[(int)m_SelectedPieceType], Vector2Subtract(GetMousePosition(), Vector2{ Piece::Size * 0.5f, Piece::Size * 0.5f }), 0.0f, scale, WHITE);
-	}
+		DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)m_SelectedPieceType], Rectangle{ GetMouseX() - Piece::Size * 0.5f, GetMouseY() - Piece::Size * 0.5f, (float)Piece::Size, (float)Piece::Size}, {0, 0}, 0.0f, WHITE);
 }
 
 bool SetupBoard::SetupPieces_CheckCursor() const

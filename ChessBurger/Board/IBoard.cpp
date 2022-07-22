@@ -128,7 +128,8 @@ void IBoard::Update()
 				if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
 				{
 					m_SelectedPiece = &piece;
-					m_SelectionFrom = Highlight(m_SelectedPiece->GetPosition(), _GetSquare(m_SelectedPiece->GetPosition()), Fade(ORANGE, 0.4f), m_Flipped);
+					Vector2 square = _GetSquare(m_SelectedPiece->GetPosition());
+					m_SelectionFrom = Highlight(Vector2{ m_BoardBounds.x + square.x * m_SquareSize, m_BoardBounds.y + square.y * m_SquareSize }, square, Fade(ORANGE, 0.4f), m_Flipped);
 					m_DraggedPiece = m_SelectedPiece;
 					m_DraggedPiece->SetDrag(true);
 
@@ -205,6 +206,20 @@ void IBoard::Update()
 	{
 		m_MoveIndex = m_Moves.size() - 1;
 		_ReloadBoard(false);
+	}
+
+	//Check delete
+	if (IsKeyPressed(KEY_DELETE))
+	{
+		if (m_MoveIndex > 0)
+		{
+			m_MoveIndex--;
+			m_Moves.resize(m_MoveIndex + 1);
+			m_MovesSN.resize(m_MoveIndex + 1);
+			_ReloadBoard(false);
+		}
+		else if (m_MoveIndex == 0)
+			LoadFEN(m_StartingFEN);
 	}
 
 	//Check copy events
@@ -458,7 +473,7 @@ void IBoard::Draw() const
 		{
 			const Piece& piece = m_Board[i][j];
 			if (piece.GetType() != PieceType::NONE && !piece.GetDrag())
-				m_Flipped ? piece.DrawFlipped(GameData::Textures.Pieces[(int)piece.GetType()]) : piece.Draw(GameData::Textures.Pieces[(int)piece.GetType()]);
+				m_Flipped ? piece.DrawFlipped() : piece.Draw();
 		}
 	}
 
@@ -471,7 +486,7 @@ void IBoard::Draw() const
 
 	//Draw dragged move
 	if (m_DraggedPiece)
-		m_DraggedPiece->Draw(GameData::Textures.Pieces[(int)m_DraggedPiece->GetType()]);
+		m_DraggedPiece->Draw();
 
 	//Draw arrows
 	for (int i = 0; i < m_Arrows.size(); i++)
@@ -784,6 +799,7 @@ bool IBoard::LoadFEN(const std::string& fen)
 
 	m_StartingFEN_Movecount = stoi(splitted[5]) * 2 + m_SideToMove - 2;
 	m_Moves.clear();
+	m_MovesSN.clear();
 	m_MoveIndex = -1;
 
 	m_StartingFEN = fen;
@@ -2188,9 +2204,12 @@ void IBoard::_ReloadBoard(bool lastMoveVisible)
 	m_Flipped = flippedBackup;
 
 	//Redo moves
-	for (int i = 0; i < moveIndexBackup; i++)
-		IBoard::_DoMove(movesBackup[i], true, false, false);
-	IBoard::_DoMove(movesBackup[moveIndexBackup], true, lastMoveVisible, lastMoveVisible);
+	if (moveIndexBackup > -1)
+	{
+		for (int i = 0; i < moveIndexBackup; i++)
+			IBoard::_DoMove(movesBackup[i], true, false, false);
+		IBoard::_DoMove(movesBackup[moveIndexBackup], true, lastMoveVisible, lastMoveVisible);
+	}
 
 	//Add back remaining moves
 	for (int i = moveIndexBackup + 1; i < movesBackup.size(); i++)

@@ -5,6 +5,14 @@
 
 uint32_t Piece::Size;
 
+struct TextureBuffer
+{
+	Texture2D Atlas;
+	Rectangle PieceRects[(int)PieceType::COUNT];
+	Texture2D Dark;
+	Texture2D Light;
+};
+
 Piece::Piece(PieceType type, const Vector2& position)
 	: m_Type(type), m_Position(position), m_PreviousPosition(position), m_NextPosition(position), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0.0), m_Drag(false), m_Animating(false) { }
 
@@ -35,13 +43,12 @@ void Piece::Update()
 	}
 }
 
-void Piece::Draw(const Texture2D& texture) const
+void Piece::Draw() const
 {
-	float scale = (float)Size / (float)texture.width;
-	DrawTextureEx(texture, m_Position, 0.0f, scale, WHITE);
+	DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)m_Type], Rectangle{ m_Position.x, m_Position.y, (float)Size, (float)Size }, { 0, 0 }, 0.0f, WHITE);
 }
 
-void Piece::DrawFlipped(const Texture2D& texture) const
+void Piece::DrawFlipped() const
 {
 	float squareSize = std::floor(m_BoardBounds.width / 8.0f);
 	Vector2 pos =
@@ -49,8 +56,7 @@ void Piece::DrawFlipped(const Texture2D& texture) const
 		2 * m_BoardBounds.x + 7 * std::floor(m_BoardBounds.width / 8.0f) - m_Position.x,
 		2 * m_BoardBounds.y + 7 * std::floor(m_BoardBounds.width / 8.0f) - m_Position.y
 	};
-	float scale = (float)Size / (float)texture.width;
-	DrawTextureEx(texture, pos, 0.0f, scale, WHITE);
+	DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)m_Type], Rectangle{ pos.x, pos.y, (float)Size, (float)Size }, { 0, 0 }, 0.0f, WHITE);
 }
 
 bool Piece::GetDrag() const

@@ -11,7 +11,7 @@ int main()
 	Game::CenterScreen();
 	SetTargetFPS(120);
 	SetExitKey(-1);
-	
+
 	//Load GUI
 	GameData::MainFont = LoadFontEx("assets/OpenSans.ttf", 70, NULL, -1);
 	SetTextureFilter(GameData::MainFont.texture, TEXTURE_FILTER_BILINEAR);

@@ -28,7 +28,8 @@ struct ColorBuffer
 
 struct TextureBuffer
 {
-	Texture2D Pieces[(int)PieceType::COUNT];
+	Texture2D Atlas;
+	Rectangle PieceRects[(int)PieceType::COUNT];
 	Texture2D Dark;
 	Texture2D Light;
 };

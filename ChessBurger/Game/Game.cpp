@@ -22,18 +22,16 @@ Game::Game(GameState state)
 	};
 
 	//Setup texture buffer
-	GameData::Textures.Pieces[0] = LoadTexture("assets/themes/wking.png");	 SetTextureFilter(GameData::Textures.Pieces[0], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[0]);
-	GameData::Textures.Pieces[1] = LoadTexture("assets/themes/wqueen.png");	 SetTextureFilter(GameData::Textures.Pieces[1], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[1]);
-	GameData::Textures.Pieces[2] = LoadTexture("assets/themes/wrook.png");	 SetTextureFilter(GameData::Textures.Pieces[2], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[2]);
-	GameData::Textures.Pieces[3] = LoadTexture("assets/themes/wbishop.png"); SetTextureFilter(GameData::Textures.Pieces[3], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[3]);
-	GameData::Textures.Pieces[4] = LoadTexture("assets/themes/wknight.png"); SetTextureFilter(GameData::Textures.Pieces[4], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[4]);
-	GameData::Textures.Pieces[5] = LoadTexture("assets/themes/wpawn.png");   SetTextureFilter(GameData::Textures.Pieces[5], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[5]);
-	GameData::Textures.Pieces[6] = LoadTexture("assets/themes/bking.png");	 SetTextureFilter(GameData::Textures.Pieces[6], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[6]);
-	GameData::Textures.Pieces[7] = LoadTexture("assets/themes/bqueen.png");	 SetTextureFilter(GameData::Textures.Pieces[7], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[7]);
-	GameData::Textures.Pieces[8] = LoadTexture("assets/themes/brook.png");	 SetTextureFilter(GameData::Textures.Pieces[8], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[8]);
-	GameData::Textures.Pieces[9] = LoadTexture("assets/themes/bbishop.png"); SetTextureFilter(GameData::Textures.Pieces[9], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[9]);
-	GameData::Textures.Pieces[10] = LoadTexture("assets/themes/bknight.png"); SetTextureFilter(GameData::Textures.Pieces[10], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[10]);
-	GameData::Textures.Pieces[11] = LoadTexture("assets/themes/bpawn.png");	 SetTextureFilter(GameData::Textures.Pieces[11], TEXTURE_FILTER_BILINEAR); GenTextureMipmaps(&GameData::Textures.Pieces[11]);
+	GameData::Textures.Atlas = LoadTexture("assets/themes/piece_sheet.png");
+	SetTextureFilter(GameData::Textures.Atlas, TEXTURE_FILTER_BILINEAR);
+	GenTextureMipmaps(&GameData::Textures.Atlas);
+	float width = GameData::Textures.Atlas.width / 6.0f;
+	float height = GameData::Textures.Atlas.height / 2.0f;
+	for (int i = 0; i < 6; i++)
+	{
+		GameData::Textures.PieceRects[i] = Rectangle{ i * width, 0, width, height };
+		GameData::Textures.PieceRects[i + 6] = Rectangle{ i * width, height, width, height };
+	}
 	Image darkImage = GenImageColor(200, 200, Color{ 181, 136, 99, 255 });
 	GameData::Textures.Dark = LoadTextureFromImage(darkImage);
 	UnloadImage(darkImage);
@@ -107,8 +105,7 @@ Game::~Game()
 	for (int i = 0; i < GameData::Engines.size(); i++)
 		delete GameData::Engines[i];
 
-	for (int i = 0; i < 12; i++)
-		UnloadTexture(GameData::Textures.Pieces[i]);
+	UnloadTexture(GameData::Textures.Atlas);
 	UnloadTexture(GameData::Textures.Dark);
 	UnloadTexture(GameData::Textures.Light);
 
