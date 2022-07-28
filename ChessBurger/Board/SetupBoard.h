@@ -19,8 +19,9 @@ public:
 	~SetupBoard();
 
 	void Update() override;
-	void UpdateBounds() override;
 	void Draw() const override;
+	void _UpdateBounds() override;
+
 	void Reset(bool resetEnginePosition = true) override;
 
 protected:

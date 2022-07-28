@@ -14,6 +14,7 @@ enum class GameState
 
 struct ColorBuffer
 {
+	Color Background;
 	Color FgNormal;
 	Color FgHovered;
 	Color FgFocused;

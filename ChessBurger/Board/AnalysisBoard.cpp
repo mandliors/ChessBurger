@@ -4,7 +4,7 @@
 #include "Utilities/Utilities.h"
 
 AnalysisBoard::AnalysisBoard(const Rectangle& bounds, Game* owner)
-	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_EvalBar_Bounds({}), m_Movelist_Bounds({}), m_MovelistContent_Bounds({}), m_Movelist_Scroll({}), m_UpdateScrollbar(false), m_BestLines_Bounds({}), m_BestLines_UITexts({})
+	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_AnalysisState(AnalysisState::NONE), m_EvalBar_Bounds({}), m_Movelist_Bounds({}), m_MovelistContent_Bounds({}), m_Movelist_Scroll({}), m_UpdateScrollbar(false), m_BestLines_Bounds({}), m_BestLines_UITexts({})
 {
 	m_AnalyseMode = true;
 	m_ShowNametag = false;
@@ -25,6 +25,12 @@ AnalysisBoard::~AnalysisBoard()
 }
 void AnalysisBoard::Update()
 {
+	if (m_AnalysisState == AnalysisState::IN_PROGRESS)
+	{
+		_AnalyzeGame();
+		return;
+	}
+
 	IBoard::Update();
 
 	//Set cursor
@@ -43,7 +49,7 @@ void AnalysisBoard::Update()
 	}
 
 	//Paste event
-	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyPressed(KEY_V))
+	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyReleased(KEY_V))
 	{
 		std::string text = GetClipboardText();
 
@@ -54,12 +60,47 @@ void AnalysisBoard::Update()
 				std::invalid_argument("Incorrect FEN or PGN");
 	}
 
+	//Start analysis with engine
+	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyReleased(KEY_A))
+	{
+		m_AnalysisState = AnalysisState::IN_PROGRESS;
+		ClearWindowState(FLAG_WINDOW_RESIZABLE);
+	}
+
 	//Update UI elements
 	Movelist_Update();
 	BestLines_Update();
 }
 
-void AnalysisBoard::UpdateBounds()
+void AnalysisBoard::Draw() const
+{
+	if (m_AnalysisState == AnalysisState::IN_PROGRESS)
+	{
+		ClearBackground(GameData::Colors.Background);
+		int x = GetScreenWidth() * 0.5f - 500;
+		int y = GetScreenHeight() * 0.5f - 150;
+		DrawRectangle(x, y, 1000, 300, GameData::Colors.BgFocused);
+		DrawRectangle(x + 10.0f, y + 10.0f, 980, 280, GameData::Colors.FgFocused);
+		DrawTextEx(GameData::MainFont, "Analyzing the game, please wait...", Vector2{ (float)x + 80.0f, (float)y + 25.0f }, 70, 0.0f, GameData::Colors.FgNormal);
+		return;
+	}
+
+	IBoard::Draw();
+
+	//Draw best move arrow
+	m_BestMoveArrow.Draw(m_BoardBounds);
+
+	//Draw UI elements
+	std::lock_guard<std::mutex> lock(GameData::EngineMutex);
+	EvalBar_Draw();
+	Movelist_Draw();
+	BestLines_Draw();
+
+	//Temporary texts
+	DrawTextEx(GameData::MainFont, std::to_string(GameData::CurrentEngine->GetAnalysisData().Depth).c_str(), Vector2{ 10, 10 }, 30, 0, RAYWHITE);
+}
+
+void AnalysisBoard::_UpdateBounds()
 {
 	//Try to match height
 	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag;
@@ -117,23 +158,6 @@ void AnalysisBoard::UpdateBounds()
 	m_UpdateScrollbar = true;
 }
 
-void AnalysisBoard::Draw() const
-{
-	IBoard::Draw();
-
-	//Draw best move arrow
-	m_BestMoveArrow.Draw(m_BoardBounds);
-
-	//Draw UI elements
-	std::lock_guard<std::mutex> lock(GameData::EngineMutex);
-	EvalBar_Draw();
-	Movelist_Draw();
-	BestLines_Draw();
-
-	//Temporary texts
-	DrawTextEx(GameData::MainFont, std::to_string(GameData::CurrentEngine->GetAnalysisData().Depth).c_str(), Vector2{ 10, 10 }, 30, 0, RAYWHITE);
-}
-
 void AnalysisBoard::Reset(bool resetEnginePosition)
 {
 	IBoard::Reset(resetEnginePosition);
@@ -144,6 +168,16 @@ bool AnalysisBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bo
 {
 	m_UpdateScrollbar = true;
 	return IBoard::_Move(fromSquare, toSquare, animated, updateEnginePosition);
+}
+
+void AnalysisBoard::_AnalyzeGame()
+{
+	//if done
+	if (false)
+	{
+		m_AnalysisState = AnalysisState::DONE;
+		SetWindowState(FLAG_WINDOW_RESIZABLE);
+	}
 }
 
 void AnalysisBoard::EvalBar_Draw() const

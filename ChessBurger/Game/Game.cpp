@@ -17,8 +17,8 @@ Game::Game(GameState state)
 	//Setup color buffer
 	GameData::Colors =
 	{
-		Color{ 245, 245, 245, 255 }, Color{ 250, 250, 250, 255 }, Color{ 80, 80, 80, 255 },    Color{ 230, 230, 230, 255 },
-		Color{ 60, 60, 60, 255 },    Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 }
+		Color{ 48, 48, 48, 255 }, Color{ 245, 245, 245, 255 }, Color{ 250, 250, 250, 255 }, Color{ 80, 80, 80, 255 }, Color{ 230, 230, 230, 255 },
+		Color{ 60, 60, 60, 255 }, Color{ 90, 90, 90, 255 },    Color{ 220, 220, 220, 255 }, Color{ 20, 20, 20, 255 }
 	};
 
 	//Setup texture buffer
@@ -141,7 +141,7 @@ void Game::SetState(GameState state)
 		MaximizeWindow();
 		m_AnalysisBoard->Reset();
 		m_AnalysisBoard->LoadFEN(STARTPOS_FEN);
-		m_AnalysisBoard->UpdateBounds();
+		m_AnalysisBoard->_UpdateBounds();
 		GameData::CurrentEngine->ResetForAnalyzing();
 		GameData::CurrentEngine->GoInfinite();
 		break;
@@ -151,7 +151,7 @@ void Game::SetState(GameState state)
 		SetWindowState(FLAG_WINDOW_RESIZABLE);
 		MaximizeWindow();
 		m_GameBoard->Reset();
-		m_GameBoard->UpdateBounds();
+		m_GameBoard->_UpdateBounds();
 		GameData::CurrentEngine->ResetForPlaying();
 		break;
 	}
@@ -160,7 +160,7 @@ void Game::SetState(GameState state)
 		SetWindowState(FLAG_WINDOW_RESIZABLE);
 		MaximizeWindow();
 		m_SetupBoard->Reset();
-		m_SetupBoard->UpdateBounds();
+		m_SetupBoard->_UpdateBounds();
 		break;
 	}
 	case GameState::SETTINGS:
@@ -218,6 +218,8 @@ void Game::CenterScreen()
 
 void Game::_MainMenu()
 {
+	ClearBackground(GameData::Colors.Background);
+	
 	DrawTextEx(GameData::MainFont, "ChessBurger", Vector2{ 200, 60 }, 70, 0, RAYWHITE);
 	DrawTextEx(GameData::MainFont, "by Progmaster", Vector2{ 520, 85 }, 40, 0, RAYWHITE);
 
@@ -257,5 +259,5 @@ void Game::_SetupBoard()
 
 void Game::_Settings()
 {
-
+	ClearBackground(GameData::Colors.Background);
 }

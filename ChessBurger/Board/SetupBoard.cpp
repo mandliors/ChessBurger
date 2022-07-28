@@ -156,10 +156,6 @@ void SetupBoard::Update()
 	if (IsKeyReleased(KEY_F))
 		Flip();
 
-	//Check resize
-	if (IsWindowResized())
-		UpdateBounds();
-
 	//Set cursor
 	m_PointingHand = m_PointingHand || SetupPieces_CheckCursor() || SidePanel_CheckCursor();
 
@@ -175,76 +171,19 @@ void SetupBoard::Update()
 				std::invalid_argument("Incorrect FEN or PGN");
 	}
 
+	//Check resize
+	if (IsWindowResized())
+		_UpdateBounds();
+
 	//Update UI
 	SetupPieces_Update();
 	SidePanel_UpdateAndDraw();
 }
 
-void SetupBoard::UpdateBounds()
-{
-	float boardSize = (GetScreenHeight() - 2 * DISTANCE_BL) * 0.8f;
-	float totalWidth = boardSize + DISTANCE_BS + boardSize * SIDEPANEL_WIDTH_P;
-	float actualBoardSize = (int)(boardSize / 8.0f) * 8;
-	float setupHeight = boardSize / 8.0f;
-	//Match height
-	if (totalWidth < GetScreenWidth())
-	{
-		float offset = (GetScreenWidth() - totalWidth) * 0.5f;
-		m_BoardBounds = Rectangle{ offset, setupHeight + DISTANCE_BL, boardSize, boardSize };
-		m_SidePanelBounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BS, m_BoardBounds.y, std::min(boardSize * SIDEPANEL_WIDTH_P, SIDEPANEL_MAX_WIDTH_A), boardSize };
-		m_SetupWhitePiecesY = m_BoardBounds.y + boardSize + DISTANCE_BL;
-		m_SetupBlackPiecesY = 0;
-		m_SetupPiecesWidth = actualBoardSize;
-		m_SetupPiecesHeight = setupHeight;
-		m_UIWidth = m_SidePanelBounds.width - 2 * UI_OFFSET;
-	}
-	//Match width
-	else
-	{
-		boardSize = (GetScreenWidth() - DISTANCE_BS) / (1.0f + SIDEPANEL_WIDTH_P);
-		actualBoardSize = (int)(boardSize / 8.0f) * 8;
-		setupHeight = boardSize / 8.0f;
-		float offset = (GetScreenHeight() - boardSize - 2 * DISTANCE_BL - 2 * setupHeight) * 0.5f;
-		m_BoardBounds = Rectangle{ 0, offset + setupHeight + DISTANCE_BL, boardSize, boardSize };
-		m_SidePanelBounds = Rectangle{ boardSize + DISTANCE_BS, m_BoardBounds.y, std::min(boardSize * SIDEPANEL_WIDTH_P, SIDEPANEL_MAX_WIDTH_A), boardSize };
-		m_SetupWhitePiecesY = m_BoardBounds.y + boardSize + DISTANCE_BL;
-		m_SetupBlackPiecesY = offset;
-		m_SetupPiecesWidth = actualBoardSize;
-		m_SetupPiecesHeight = setupHeight;
-		m_UIWidth = m_SidePanelBounds.width - 2 * UI_OFFSET;
-	}
-	m_SquareSize = boardSize / 8;
-
-
-	//Update guides
-	IGuide::Size = m_SquareSize;
-	for (int i = 0; i < m_Highlights.size(); i++)
-		m_Highlights[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-	for (int i = 0; i < m_Arrows.size(); i++)
-		m_Arrows[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-	for (int i = 0; i < m_SelectedMoves.size(); i++)
-		m_SelectedMoves[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-
-	//Update special highlights
-	m_SelectionFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
-	m_LastMoveFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
-	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
-
-	//Update pieces
-	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
-	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			m_Board[i][j].TellBoardBounds(m_BoardBounds);
-			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
-		}
-	}
-}
-
 void SetupBoard::Draw() const
 {
+	ClearBackground(GameData::Colors.Background);
+
 	//Draw board
 	float scale = (float)m_SquareSize / (float)GameData::Textures.Light.height;
 	for (int i = 0; i < 8; i++)
@@ -313,6 +252,69 @@ void SetupBoard::Draw() const
 		SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 
 	SetupPieces_Draw();
+}
+
+void SetupBoard::_UpdateBounds()
+{
+	float boardSize = (GetScreenHeight() - 2 * DISTANCE_BL) * 0.8f;
+	float totalWidth = boardSize + DISTANCE_BS + boardSize * SIDEPANEL_WIDTH_P;
+	float actualBoardSize = (int)(boardSize / 8.0f) * 8;
+	float setupHeight = boardSize / 8.0f;
+	//Match height
+	if (totalWidth < GetScreenWidth())
+	{
+		float offset = (GetScreenWidth() - totalWidth) * 0.5f;
+		m_BoardBounds = Rectangle{ offset, setupHeight + DISTANCE_BL, boardSize, boardSize };
+		m_SidePanelBounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BS, m_BoardBounds.y, std::min(boardSize * SIDEPANEL_WIDTH_P, SIDEPANEL_MAX_WIDTH_A), boardSize };
+		m_SetupWhitePiecesY = m_BoardBounds.y + boardSize + DISTANCE_BL;
+		m_SetupBlackPiecesY = 0;
+		m_SetupPiecesWidth = actualBoardSize;
+		m_SetupPiecesHeight = setupHeight;
+		m_UIWidth = m_SidePanelBounds.width - 2 * UI_OFFSET;
+	}
+	//Match width
+	else
+	{
+		boardSize = (GetScreenWidth() - DISTANCE_BS) / (1.0f + SIDEPANEL_WIDTH_P);
+		actualBoardSize = (int)(boardSize / 8.0f) * 8;
+		setupHeight = boardSize / 8.0f;
+		float offset = (GetScreenHeight() - boardSize - 2 * DISTANCE_BL - 2 * setupHeight) * 0.5f;
+		m_BoardBounds = Rectangle{ 0, offset + setupHeight + DISTANCE_BL, boardSize, boardSize };
+		m_SidePanelBounds = Rectangle{ boardSize + DISTANCE_BS, m_BoardBounds.y, std::min(boardSize * SIDEPANEL_WIDTH_P, SIDEPANEL_MAX_WIDTH_A), boardSize };
+		m_SetupWhitePiecesY = m_BoardBounds.y + boardSize + DISTANCE_BL;
+		m_SetupBlackPiecesY = offset;
+		m_SetupPiecesWidth = actualBoardSize;
+		m_SetupPiecesHeight = setupHeight;
+		m_UIWidth = m_SidePanelBounds.width - 2 * UI_OFFSET;
+	}
+	m_SquareSize = boardSize / 8;
+
+
+	//Update guides
+	IGuide::Size = m_SquareSize;
+	for (int i = 0; i < m_Highlights.size(); i++)
+		m_Highlights[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+	for (int i = 0; i < m_Arrows.size(); i++)
+		m_Arrows[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+	for (int i = 0; i < m_SelectedMoves.size(); i++)
+		m_SelectedMoves[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+
+	//Update special highlights
+	m_SelectionFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
+	m_LastMoveFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
+	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
+
+	//Update pieces
+	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
+	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			m_Board[i][j].TellBoardBounds(m_BoardBounds);
+			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
+		}
+	}
 }
 
 void SetupBoard::Reset(bool resetEnginePosition)

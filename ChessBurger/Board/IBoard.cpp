@@ -6,8 +6,6 @@
 #include <cmath>
 #include <algorithm>
 
-#include <iostream>
-
 std::unordered_map<PieceType, char> IBoard::FEN_Codes;
 std::unordered_map<char, PieceType> IBoard::FEN_Codes_Backwards;
 
@@ -68,7 +66,7 @@ IBoard::IBoard(const Rectangle& bounds, Game* owner)
 		std::make_pair<char, PieceType>('k', PieceType::B_KING)
 	};
 
-	UpdateBounds();
+	_UpdateBounds();
 }
 
 void IBoard::Update()
@@ -334,56 +332,13 @@ void IBoard::Update()
 
 	//Check resize
 	if (IsWindowResized())
-		UpdateBounds();
-}
-
-void IBoard::UpdateBounds()
-{
-	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * m_ShowNametag;
-	//Match height
-	if (boardSize < GetScreenWidth())
-	{
-		float offset = (GetScreenWidth() - boardSize) * 0.5f;
-		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-	}
-	//Match width
-	else
-	{
-		boardSize = GetScreenWidth();
-		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
-		m_BoardBounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-	}
-	m_SquareSize = boardSize / 8;
-
-	//Update guides
-	IGuide::Size = m_SquareSize;
-	for (int i = 0; i < m_Highlights.size(); i++)
-		m_Highlights[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-	for (int i = 0; i < m_Arrows.size(); i++)
-		m_Arrows[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-	for (int i = 0; i < m_SelectedMoves.size(); i++)
-		m_SelectedMoves[i].UpdatePosition(m_BoardBounds, m_SquareSize);
-
-	//Update special highlights
-	m_SelectionFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
-	m_LastMoveFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
-	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
-
-	//Update pieces
-	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
-	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
-	for (int i = 0; i < 8; i++)
-	{
-		for (int j = 0; j < 8; j++)
-		{
-			m_Board[i][j].TellBoardBounds(m_BoardBounds);
-			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
-		}
-	}
+		_UpdateBounds();
 }
 
 void IBoard::Draw() const
 {
+	ClearBackground(GameData::Colors.Background);
+
 	//Show nametags
 	if (m_ShowNametag)
 	{
@@ -507,6 +462,51 @@ void IBoard::Draw() const
 		SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
 	else
 		SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+}
+
+void IBoard::_UpdateBounds()
+{
+	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * m_ShowNametag;
+	//Match height
+	if (boardSize < GetScreenWidth())
+	{
+		float offset = (GetScreenWidth() - boardSize) * 0.5f;
+		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+	}
+	//Match width
+	else
+	{
+		boardSize = GetScreenWidth();
+		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
+		m_BoardBounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+	}
+	m_SquareSize = boardSize / 8;
+
+	//Update guides
+	IGuide::Size = m_SquareSize;
+	for (int i = 0; i < m_Highlights.size(); i++)
+		m_Highlights[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+	for (int i = 0; i < m_Arrows.size(); i++)
+		m_Arrows[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+	for (int i = 0; i < m_SelectedMoves.size(); i++)
+		m_SelectedMoves[i].UpdatePosition(m_BoardBounds, m_SquareSize);
+
+	//Update special highlights
+	m_SelectionFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
+	m_LastMoveFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
+	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
+
+	//Update pieces
+	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
+	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
+	for (int i = 0; i < 8; i++)
+	{
+		for (int j = 0; j < 8; j++)
+		{
+			m_Board[i][j].TellBoardBounds(m_BoardBounds);
+			m_Board[i][j].SetPosition(Vector2{ m_BoardBounds.x + j * m_SquareSize + offset, m_BoardBounds.y + i * m_SquareSize + offset });
+		}
+	}
 }
 
 IBoard::~IBoard()
@@ -2255,7 +2255,7 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			{
 				for (int j = 0; j < 8; j++)
 				{
-					Piece& tempPiece = m_Board[i][j];
+					Piece& tempPiece = m_Board[j][i];
 					if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide())
 					{
 						Vector2 diff = { std::abs(to.x - j), std::abs(to.y - i) };

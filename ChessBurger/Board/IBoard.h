@@ -31,8 +31,8 @@ public:
 	~IBoard();
 
 	virtual void Update();
-	virtual void UpdateBounds();
 	virtual void Draw() const;
+	virtual void _UpdateBounds();
 
 	virtual void Reset(bool resetEnginePosition = true);
 	bool LoadFEN(const std::string& fen);

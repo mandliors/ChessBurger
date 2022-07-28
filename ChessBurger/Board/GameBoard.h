@@ -18,8 +18,8 @@ public:
 	GameBoard(const Rectangle& bounds, Game* owner);
 
 	void Update() override;
-	void UpdateBounds() override;
 	void Draw() const override;
+	void _UpdateBounds() override;
 
 	virtual void Reset(bool resetEnginePosition = true) override;
 

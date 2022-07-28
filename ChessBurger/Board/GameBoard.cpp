@@ -64,15 +64,6 @@ void GameBoard::Update()
 	}
 }
 
-void GameBoard::UpdateBounds()
-{
-	IBoard::UpdateBounds();
-
-	//Update timer bounds
-	m_WhiteClockBounds = Rectangle{ m_BoardBounds.x + m_BoardBounds.width - m_BoardBounds.width * CLOCK_WIDTH_P, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - CLOCK_HEIGHT_A) * 0.5f, m_BoardBounds.width * CLOCK_WIDTH_P, CLOCK_HEIGHT_A };
-	m_BlackClockBounds = Rectangle{ m_BoardBounds.x + m_BoardBounds.width - m_BoardBounds.width * CLOCK_WIDTH_P, (m_BoardBounds.y - CLOCK_HEIGHT_A) * 0.5f, m_BoardBounds.width * CLOCK_WIDTH_P, CLOCK_HEIGHT_A };
-}
-
 void GameBoard::Draw() const
 {
 	IBoard::Draw();
@@ -93,6 +84,15 @@ void GameBoard::Draw() const
 		DrawRectangleRounded(m_BlackClockBounds, 0.2f, 4, Fade(BLACK, 0.5f));
 	else
 		DrawRectangleRounded(m_WhiteClockBounds, 0.2f, 4, Fade(BLACK, 0.5f));
+}
+
+void GameBoard::_UpdateBounds()
+{
+	IBoard::_UpdateBounds();
+
+	//Update timer bounds
+	m_WhiteClockBounds = Rectangle{ m_BoardBounds.x + m_BoardBounds.width - m_BoardBounds.width * CLOCK_WIDTH_P, m_BoardBounds.y + m_BoardBounds.height + (m_BoardBounds.y - CLOCK_HEIGHT_A) * 0.5f, m_BoardBounds.width * CLOCK_WIDTH_P, CLOCK_HEIGHT_A };
+	m_BlackClockBounds = Rectangle{ m_BoardBounds.x + m_BoardBounds.width - m_BoardBounds.width * CLOCK_WIDTH_P, (m_BoardBounds.y - CLOCK_HEIGHT_A) * 0.5f, m_BoardBounds.width * CLOCK_WIDTH_P, CLOCK_HEIGHT_A };
 }
 
 bool GameBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)

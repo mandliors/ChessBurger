@@ -23,6 +23,11 @@
 #define BESTLINES_UITEXT_SIZE_RATIO 1.2f
 #define BESTLINES_UPDATES_PER_SEC 30
 
+enum class AnalysisState
+{
+	NONE = 0, IN_PROGRESS, DONE
+};
+
 class Game;
 
 class AnalysisBoard : public IBoard
@@ -32,14 +37,17 @@ public:
 	~AnalysisBoard();
 
 	void Update() override;
-	void UpdateBounds() override;
 	void Draw() const override;
+	void _UpdateBounds() override;
+
 	void Reset(bool resetEnginePosition = true) override;
 
 protected:
 	bool _Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated = false, bool updateEnginePosition = true) override;
 
 private:
+	void _AnalyzeGame();
+
 	//UI functions
 	void EvalBar_Draw() const;
 
@@ -54,6 +62,7 @@ private:
 private:
 	Arrow m_BestMoveArrow;
 	uint32_t m_FrameCounter;
+	AnalysisState m_AnalysisState;
 
 	//EvalBar
 	Rectangle m_EvalBar_Bounds;

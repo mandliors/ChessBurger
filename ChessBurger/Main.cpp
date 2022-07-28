@@ -33,7 +33,6 @@ int main()
 	{
 		BeginDrawing();
 		{
-			ClearBackground(Color{ 48, 48, 48 });
 			if (IsKeyReleased(KEY_ESCAPE))
 			{
 				SetMouseCursor(MOUSE_CURSOR_DEFAULT);
