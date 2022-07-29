@@ -29,6 +29,8 @@ int main()
 	Game::CenterScreen();
 	ClearWindowState(FLAG_WINDOW_UNDECORATED);
 
+	GameData::MuteSounds = true;
+
 	while (!WindowShouldClose())
 	{
 		BeginDrawing();

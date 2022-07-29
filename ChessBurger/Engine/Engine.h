@@ -67,4 +67,7 @@ private:
 	void* m_PipinR;
 	void* m_PipoutW;
 	void* m_PipoutR;
+#ifdef ENGINE_DUMP
+	std::ofstream* m_LogFile;
+#endif
 };

@@ -62,7 +62,7 @@ void SetupBoard::Update()
 		if (m_DraggedPiece)
 		{
 			if (CheckCollisionPointRec(mousePosition, m_BoardBounds))
-				_Move(_GetRealSquare(m_DraggedPiece->GetPreviousPosition()), _GetSquare(mousePosition), false, false);
+				_Move(_ToChessNote(_GetRealSquare(m_DraggedPiece->GetPreviousPosition())) + _ToChessNote(_GetSquare(mousePosition)), false, false);
 			else
 			{
 				Vector2 square = _GetRealSquare(m_DraggedPiece->GetPreviousPosition());

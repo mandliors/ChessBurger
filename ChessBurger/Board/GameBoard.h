@@ -24,7 +24,7 @@ public:
 	virtual void Reset(bool resetEnginePosition = true) override;
 
 protected:
-	bool _Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated = false, bool updateEnginePosition = true) override;
+	bool _Move(const std::string& move, bool animated = false, bool updateEnginePosition = true) override;
 
 private:
 	Clock m_WhiteClock;

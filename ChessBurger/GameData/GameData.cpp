@@ -15,3 +15,4 @@ Color GameData::ArrowColor = DARKBLUE;
 float GameData::ArrowOpacity = 0.8f;
 
 bool GameData::SupportAnimations = true;
+bool GameData::MuteSounds = false;

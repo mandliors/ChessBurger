@@ -3,6 +3,7 @@
 #include "Game/Game.h"
 #include "Utilities/Utilities.h"
 #include "extras/raygui.h"
+#include "raymath.h"
 #include <cmath>
 #include <algorithm>
 
@@ -10,7 +11,7 @@ std::unordered_map<PieceType, char> IBoard::FEN_Codes;
 std::unordered_map<char, PieceType> IBoard::FEN_Codes_Backwards;
 
 IBoard::IBoard(const Rectangle& bounds, Game* owner)
-	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_AnalyseMode(false), m_WhiteName("Player 1"), m_Side(0), m_BlackName("Player 2"), m_EnPassant(""), m_StartingFEN_Movecount(-1), m_MoveIndex(-1), m_SelectedMoves({}), m_StartingFEN(STARTPOS_FEN), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false), m_WhiteShort(true), m_WhiteLong(true), m_BlackShort(true), m_BlackLong(true), m_ShowNametag(false), m_ShowLegalMoves(true), m_OnlyLegalMoves(true), m_Owner(owner)
+	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_AnalyseMode(false), m_WhiteName("Player 1"), m_Side(0), m_BlackName("Player 2"), m_EnPassant(""), m_Promotion(""), m_StartingFEN_Movecount(-1), m_MoveIndex(-1), m_SelectedMoves({}), m_StartingFEN(STARTPOS_FEN), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false), m_WhiteShort(true), m_WhiteLong(true), m_BlackShort(true), m_BlackLong(true), m_ShowNametag(false), m_ShowLegalMoves(true), m_OnlyLegalMoves(true), m_Owner(owner)
 {
 	//Create arrow head texture
 	int size = 500;
@@ -32,6 +33,7 @@ IBoard::IBoard(const Rectangle& bounds, Game* owner)
 			ImageDrawPixel(&headImg, 2 * j + 1, size - i - 1, WHITE);
 		}
 	}
+
 	Arrow::Head = LoadTextureFromImage(headImg);
 	UnloadImage(headImg);
 
@@ -76,6 +78,154 @@ void IBoard::Update()
 	Vector2 mousePosition = GetMousePosition();
 	if (CheckCollisionPointRec(mousePosition, m_BoardBounds))
 	{
+		//Promotion in progress
+		if (m_Promotion != "")
+		{
+			//White promotes
+			if (m_SideToMove == 0)
+			{
+				if (!m_Flipped)
+				{
+					int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+					int idx = (mousePosition.y - m_BoardBounds.y) / m_SquareSize;
+					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
+					{
+						overlap = true;
+						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+						{
+							switch (idx)
+							{
+							case 0:
+								_Move(m_Promotion + "q", false, true);
+								break;
+							case 1:
+								_Move(m_Promotion + "n", false, true);
+								break;
+							case 2:
+								_Move(m_Promotion + "r", false, true);
+								break;
+							case 3:
+								_Move(m_Promotion + "b", false, true);
+								break;
+							}
+						}
+					}
+					else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+					{
+						m_Promotion = "";
+						_ReloadBoard(false, false);
+					}
+				}
+				else
+				{
+					int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+					int idx = (m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize;
+					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
+					{
+
+						overlap = true;
+						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+						{
+							switch (idx)
+							{
+							case 0:
+								_Move(m_Promotion + "q", false, true);
+								break;
+							case 1:
+								_Move(m_Promotion + "n", false, true);
+								break;
+							case 2:
+								_Move(m_Promotion + "r", false, true);
+								break;
+							case 3:
+								_Move(m_Promotion + "b", false, true);
+								break;
+							}
+						}
+					}
+					else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+					{
+						m_Promotion = "";
+						_ReloadBoard(false, false);
+					}
+				}
+			}
+			//Black promotes
+			else if (m_SideToMove == 1)
+			{
+				if (!m_Flipped)
+				{
+					int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+					int idx = (m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize;
+					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
+					{
+						overlap = true;
+						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+						{
+
+							overlap = true;
+							if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+							{
+								switch (idx)
+								{
+								case 0:
+									_Move(m_Promotion + "q", false, true);
+									break;
+								case 1:
+									_Move(m_Promotion + "n", false, true);
+									break;
+								case 2:
+									_Move(m_Promotion + "r", false, true);
+									break;
+								case 3:
+									_Move(m_Promotion + "b", false, true);
+									break;
+								}
+							}
+						}
+						else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+						{
+							m_Promotion = "";
+							_ReloadBoard(false, false);
+						}
+					}
+				}
+				else
+				{
+					int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+					int idx = (mousePosition.y - m_BoardBounds.y) / m_SquareSize;
+					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
+					{
+
+						overlap = true;
+						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+						{
+							switch (idx)
+							{
+							case 0:
+								_Move(m_Promotion + "q", false, true);
+								break;
+							case 1:
+								_Move(m_Promotion + "n", false, true);
+								break;
+							case 2:
+								_Move(m_Promotion + "r", false, true);
+								break;
+							case 3:
+								_Move(m_Promotion + "b", false, true);
+								break;
+							}
+						}
+					}
+					else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+					{
+						m_Promotion = "";
+						_ReloadBoard(false, false);
+					}
+				}
+			}
+		}
+
 		Vector2 mouseSquare = _GetSquare(mousePosition);
 		Piece& piece = m_Board[(int)mouseSquare.y][(int)mouseSquare.x];
 		Vector2 square = _GetRealSquare(piece.GetPosition());
@@ -92,7 +242,7 @@ void IBoard::Update()
 					{
 						//Spot click
 						if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-							_Move(_GetRealSquare(m_SelectedPiece->GetPreviousPosition()), square, true);
+							_Move(_ToChessNote(_GetRealSquare(m_SelectedPiece->GetPreviousPosition())) + _ToChessNote(square), true);
 						overlap = true;
 					}
 				}
@@ -134,13 +284,24 @@ void IBoard::Update()
 					if (m_SelectedPiece->GetSide() == m_Side || m_AnalyseMode)
 					{
 						m_SelectedMoves.clear();
-						std::string prevSquare = _ToChessNote(_GetRealSquare(m_SelectedPiece->GetPreviousPosition()));
-						for (int i = 0; i < m_LegalMoves.size(); i++)
+						if (m_LegalMoves.size() > 0)
 						{
-							if (m_LegalMoves[i].substr(0, 2) == prevSquare)
+							std::string prevSquare = _ToChessNote(_GetRealSquare(m_SelectedPiece->GetPreviousPosition()));
+
+							if (m_LegalMoves[0].substr(0, 2) == prevSquare)
 							{
-								Vector2 square = _ToRealSquare(m_LegalMoves[i].substr(2, 2));
+								Vector2 square = _ToRealSquare(m_LegalMoves[0].substr(2, 2));
 								m_SelectedMoves.emplace_back(Vector2{ m_BoardBounds.x + (square.x + 0.5f) * m_SquareSize, m_BoardBounds.y + (square.y + 0.5f) * m_SquareSize }, square, Fade(BLACK, 0.4f), m_Flipped);
+							}
+							std::string nextSquare;
+							for (int i = 1; i < m_LegalMoves.size(); i++)
+							{
+								nextSquare = m_LegalMoves[i].substr(2, 2);
+								if (m_LegalMoves[i].substr(0, 2) == prevSquare && m_LegalMoves[i - 1].substr(2, 2) != nextSquare)
+								{
+									Vector2 square = _ToRealSquare(nextSquare);
+									m_SelectedMoves.emplace_back(Vector2{ m_BoardBounds.x + (square.x + 0.5f) * m_SquareSize, m_BoardBounds.y + (square.y + 0.5f) * m_SquareSize }, square, Fade(BLACK, 0.4f), m_Flipped);
+								}
 							}
 						}
 					}
@@ -169,7 +330,7 @@ void IBoard::Update()
 	if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
 	{
 		if (m_DraggedPiece && (m_DraggedPiece->GetSide() == m_Side || m_AnalyseMode))
-			_Move(_GetRealSquare(m_DraggedPiece->GetPreviousPosition()), _GetSquare(GetMousePosition()));
+			_Move(_ToChessNote(_GetRealSquare(m_DraggedPiece->GetPreviousPosition())) + _ToChessNote(_GetSquare(GetMousePosition())));
 		else
 		{
 			m_Highlights.clear();
@@ -188,22 +349,26 @@ void IBoard::Update()
 	if (IsKeyPressed(KEY_LEFT) && m_MoveIndex > 0)
 	{
 		m_MoveIndex--;
-		_ReloadBoard(false);
+		m_Promotion = "";
+		_ReloadBoard(false, false);
 	}
 	else if (IsKeyPressed(KEY_RIGHT) && m_MoveIndex < m_Moves.size() - 1)
 	{
 		m_MoveIndex++;
-		_ReloadBoard(true);
+		m_Promotion = "";
+		_ReloadBoard(true, true);
 	}
 	else if (IsKeyPressed(KEY_UP) && m_MoveIndex != 0 && m_Moves.size() > 0)
 	{
 		m_MoveIndex = 0;
-		_ReloadBoard(false);
+		m_Promotion = "";
+		_ReloadBoard(false, false);
 	}
 	else if (IsKeyPressed(KEY_DOWN) && m_MoveIndex != m_Moves.size() - 1)
 	{
 		m_MoveIndex = m_Moves.size() - 1;
-		_ReloadBoard(false);
+		m_Promotion = "";
+		_ReloadBoard(false, false);
 	}
 
 	//Check delete
@@ -214,7 +379,7 @@ void IBoard::Update()
 			m_MoveIndex--;
 			m_Moves.resize(m_MoveIndex + 1);
 			m_MovesSN.resize(m_MoveIndex + 1);
-			_ReloadBoard(false);
+			_ReloadBoard(false, false);
 		}
 		else if (m_MoveIndex == 0)
 			LoadFEN(m_StartingFEN);
@@ -433,11 +598,9 @@ void IBoard::Draw() const
 	}
 
 	//Draw selected moves
-	if (m_ShowLegalMoves)
-	{
+	if (m_ShowLegalMoves && m_SelectedMoves.size() > 0)
 		for (int i = 0; i < m_SelectedMoves.size(); i++)
 			m_SelectedMoves[i].Draw(m_BoardBounds);
-	}
 
 	//Draw dragged move
 	if (m_DraggedPiece)
@@ -446,6 +609,94 @@ void IBoard::Draw() const
 	//Draw arrows
 	for (int i = 0; i < m_Arrows.size(); i++)
 		m_Arrows[i].Draw(m_BoardBounds);
+
+	//Draw promotion window
+	if (m_Promotion != "")
+	{
+		if (m_SideToMove == 0)
+		{
+			if (!m_Flipped)
+			{
+				int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+				DrawRectangle(startX, m_BoardBounds.y, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+
+				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
+				position = m_Board[(int)position.y][(int)position.x].GetPosition();
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+			}
+			else
+			{
+				int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+				DrawRectangle(startX, m_BoardBounds.y + 4 * m_SquareSize, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 4 * m_SquareSize + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+
+				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
+				position = m_Board[(int)position.y][(int)position.x].GetPosition();
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+			}
+		}
+		//Black promotes
+		else if (m_SideToMove == 1)
+		{
+			if (!m_Flipped)
+			{
+				int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+				DrawRectangle(startX, m_BoardBounds.y + 4 * m_SquareSize, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 4 * m_SquareSize + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+
+				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
+				position = m_Board[(int)position.y][(int)position.x].GetPosition();
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y -= m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+			}
+			else
+			{
+				int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+				DrawRectangle(startX, m_BoardBounds.y, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+
+				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
+				position = m_Board[(int)position.y][(int)position.x].GetPosition();
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+
+				position.y += m_SquareSize;
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+			}
+		}
+	}
 
 	//Draw winner popup
 	if (m_Result == Result::WHITE_WIN)
@@ -604,6 +855,9 @@ void IBoard::Reset(bool resetEnginePosition)
 		m_SideToMove = 0;
 		m_Flipped = false;
 
+		m_EnPassant = "";
+		m_Promotion = "";
+
 		m_Moves.clear();
 		m_MovesSN.clear();
 		m_MoveIndex = -1;
@@ -612,6 +866,7 @@ void IBoard::Reset(bool resetEnginePosition)
 	}
 
 	m_Result = Result::NONE;
+	m_Promotion = "";
 
 	if (resetEnginePosition)
 	{
@@ -943,30 +1198,85 @@ void IBoard::Clear()
 	}
 }
 
-bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
+bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
 {
+	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
+	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
+	bool moveIsLegal = std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end() ||
+		std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move + "q") != m_LegalMoves.end();
+
 	//Move should overwrite current move or should not be played
 	if (m_MoveIndex != m_Moves.size() - 1)
 	{
 		//AnalyseMode, overwriting is allowed
 		if (m_AnalyseMode)
 		{
-			std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
-
 			//Overwrite the current line if necessary
 			if (move != m_Moves[m_MoveIndex + 1])
 			{
-				if ((std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end() || !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
+				Vector2 piecePosition = m_Board[(int)fromSquare.y][(int)fromSquare.x].GetPosition();
+				//If the dragged piece is the moved piece
+				if (m_DraggedPiece && piecePosition.x == m_DraggedPiece->GetPosition().x && piecePosition.y == m_DraggedPiece->GetPosition().y)
+				{
+					m_DraggedPiece->SetDrag(false);
+					m_DraggedPiece = nullptr;
+
+					if (fromSquare.x != toSquare.x || fromSquare.y != toSquare.y)
+					{
+						m_SelectedPiece = nullptr;
+						m_SelectedMoves.clear();
+					}
+				}
+				if ((moveIsLegal || !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
 				{
 					if (_IsOnBoard(fromSquare) && _IsOnBoard(toSquare))
 					{
-						_ReloadBoard(false);
-						bool capture;
-						_TestMove(move, &capture);
-						m_Moves.resize(m_MoveIndex + 1); m_MovesSN.resize(m_MoveIndex + 1);	//TEMPORARY
-						_DoMove(move, true, animated);
+						m_Highlights.clear();
+						m_Arrows.clear();
+
+						//Check promotion
+						if (m_OnlyLegalMoves)
+						{
+							Piece& piece = m_Board[(int)fromSquare.y][(int)fromSquare.x];
+							//Already promoting, now make the move, or immediate promotion (by the computer)
+							if (m_Promotion != "" || (move.size() == 5 && move != "O-O-O"))
+							{
+								//Different promotion, need to overwrite
+								m_Moves.resize(m_MoveIndex + 1); m_MovesSN.resize(m_MoveIndex + 1);
+
+								m_Promotion = "";
+								_ReloadBoard(false, false);
+								_DoMove(move, true, animated, true);
+								if (updateEnginePosition)
+									GameData::CurrentEngine->SetPosition(_GetFEN());
+								return true;
+							}
+							//Promotion starts
+							else if ((piece.GetType() == PieceType::W_PAWN && toSquare.y == 0) ||
+								(piece.GetType() == PieceType::B_PAWN && toSquare.y == 7))
+							{
+								m_Promotion = move;
+									
+								//Move the piece in the array
+								Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
+								Vector2 tempPosition = piece->GetPosition();
+								if (animated)
+									piece->StartAnimation(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+								else
+									piece->SetPosition(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+								m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
+								m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
+								piece = &m_Board[(int)toSquare.y][(int)toSquare.x];
+								return false;
+							}
+							//No promotion
+							else
+								m_Moves.resize(m_MoveIndex + 1); m_MovesSN.resize(m_MoveIndex + 1);
+						}
+						_DoMove(move, true, animated, m_OnlyLegalMoves);
 						if (updateEnginePosition)
 							GameData::CurrentEngine->SetPosition(_GetFEN());
+						return true;
 					}
 					else
 						m_Board[(int)fromSquare.y][(int)fromSquare.x].SetType(PieceType::NONE);
@@ -983,7 +1293,9 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 			else
 			{
 				m_MoveIndex++;
-				_ReloadBoard(animated);
+				m_Promotion = "";
+				_ReloadBoard(animated, true);
+				return true;
 			}
 		}
 		//Move is not made, jump to the end of the line
@@ -991,7 +1303,7 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 		{
 			int8_t sideToMove = (m_SideToMove + m_Moves.size() - m_MoveIndex + 1) % 2;
 			m_MoveIndex = m_Moves.size() - 1;
-			_ReloadBoard(false);
+			_ReloadBoard(false, false);
 			m_SideToMove = sideToMove;
 			m_Highlights.clear();
 			m_Arrows.clear();
@@ -1007,23 +1319,57 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 		{
 			m_DraggedPiece->SetDrag(false);
 			m_DraggedPiece = nullptr;
-		
+
 			if (fromSquare.x != toSquare.x || fromSquare.y != toSquare.y)
 			{
 				m_SelectedPiece = nullptr;
 				m_SelectedMoves.clear();
 			}
 		}
-		std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
-		if ((std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end()|| !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
+		if ((moveIsLegal || !m_OnlyLegalMoves) && move.substr(0, 2) != move.substr(2, 2))
 		{
 			if (_IsOnBoard(fromSquare) && _IsOnBoard(toSquare))
 			{
-				_DoMove(fromSquare, toSquare, true, animated);
-				if (updateEnginePosition)
-					GameData::CurrentEngine->SetPosition(_GetFEN());
 				m_Highlights.clear();
 				m_Arrows.clear();
+
+				//Check promotion
+				if (m_OnlyLegalMoves)
+				{
+					Piece& piece = m_Board[(int)fromSquare.y][(int)fromSquare.x];
+					//Already promoting, now make the move, or immediate promotion (by the computer)
+					if (m_Promotion != "" || (move.size() == 5 || move != "O-O-O"))
+					{
+						m_Promotion = "";
+						_ReloadBoard(false, false);
+						_DoMove(move, true, animated, true);
+						if (updateEnginePosition)
+							GameData::CurrentEngine->SetPosition(_GetFEN());
+						return true;
+					}
+					//Promotion starts
+					else if ((piece.GetType() == PieceType::W_PAWN && toSquare.y == 0) ||
+						(piece.GetType() == PieceType::B_PAWN && toSquare.y == 7))
+					{
+						m_Promotion = move;
+
+						//Move the piece in the array
+						Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
+						Vector2 tempPosition = piece->GetPosition();
+						if (animated)
+							piece->StartAnimation(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+						else
+							piece->SetPosition(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+						m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
+						m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
+						piece = &m_Board[(int)toSquare.y][(int)toSquare.x];
+						return false;
+					}
+				}
+				_DoMove(move, true, animated, m_OnlyLegalMoves);
+				if (updateEnginePosition)
+					GameData::CurrentEngine->SetPosition(_GetFEN());
+				return true;
 			}
 			else
 				m_Board[(int)fromSquare.y][(int)fromSquare.x].SetType(PieceType::NONE);
@@ -1034,30 +1380,100 @@ bool IBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool anim
 	return false;
 }
 
-bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
+void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, bool playSound)
 {
-	Vector2 from = _ToRealSquare(move.substr(0, 2));
-	Vector2 to = _ToRealSquare(move.substr(2, 2));
-	return _Move(from, to, animated, updateEnginePosition);
-}
-
-void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool registerMove, bool animated, bool playSound)
-{
+	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
+	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
 	Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
-	std::string move = _ToChessNote(fromSquare) + _ToChessNote(toSquare);
+	std::string moveSN = _GetShortNotation(move);
 
-	bool moveIsLegal = std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end();
+	bool moveIsLegal = std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move) != m_LegalMoves.end() ||
+					std::find(m_LegalMoves.begin(), m_LegalMoves.end(), move + "q") != m_LegalMoves.end();
 	bool capture = false;
 	if (m_Board[(int)toSquare.y][(int)toSquare.x].GetType() != PieceType::NONE)
 		capture = true;
 
-	if (moveIsLegal && m_OnlyLegalMoves)
+	if (m_OnlyLegalMoves)
 	{
 		//Is the move a castle
 		if (piece->GetType() == PieceType::W_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
 			return _CastleKing(m_WhiteKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
 		else if (piece->GetType() == PieceType::B_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
 			return _CastleKing(m_BlackKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
+
+		//Is the move a promotion
+		if (move.size() == 5)
+		{
+			//Move the piece in the array
+			Vector2 tempPosition = piece->GetPosition();
+			if (animated)
+				piece->StartAnimation(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+			else
+				piece->SetPosition(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
+			m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
+			m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
+			piece = &m_Board[(int)toSquare.y][(int)toSquare.x];
+
+			if (piece->GetSide() == 0)
+			{
+				switch (move[4])
+				{
+				case 'q':
+					piece->SetType(PieceType::W_QUEEN);
+					break;
+				case 'n':
+					piece->SetType(PieceType::W_KNIGHT);
+					break;
+				case 'r':
+					piece->SetType(PieceType::W_ROOK);
+					break;
+				case 'b':
+					piece->SetType(PieceType::W_BISHOP);
+					break;
+				}
+			}
+			else if (piece->GetSide() == 1)
+			{
+				switch (move[4])
+				{
+				case 'q':
+					piece->SetType(PieceType::B_QUEEN);
+					break;
+				case 'n':
+					piece->SetType(PieceType::B_KNIGHT);
+					break;
+				case 'r':
+					piece->SetType(PieceType::B_ROOK);
+					break;
+				case 'b':
+					piece->SetType(PieceType::B_BISHOP);
+					break;
+				}
+			}
+
+			//Update check variables
+			m_WhiteInCheck = _IsAttacked(m_WhiteKing);
+			m_BlackInCheck = _IsAttacked(m_BlackKing);
+
+			m_SideToMove = !m_SideToMove;
+
+			//Register if necessary
+			if (registerMove)
+			{
+				_RegisterMove(piece, move, moveSN, false);
+				_GetLegalMoves(m_SideToMove);
+
+				//Play sound
+				if (playSound && !GameData::MuteSounds)
+				{
+					if (capture)
+						PlayASound(GameData::Sounds.CaptureSound);
+					else
+						PlayASound(GameData::Sounds.MoveSound);
+				}
+			}
+			return;
+		}
 
 		//Check en passant
 		if (fromSquare.x != toSquare.x && piece->GetType() == PieceType::W_PAWN && m_Board[(int)toSquare.y][(int)toSquare.x].GetType() == PieceType::NONE)
@@ -1073,7 +1489,7 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 	}
 
 	//Update castling availability
-	if (registerMove && m_OnlyLegalMoves)
+	if (registerMove)
 	{
 		if (piece->GetType() == PieceType::W_KING)
 		{
@@ -1111,7 +1527,7 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 	Vector2 tempPosition = piece->GetPosition();
 	if (animated)
 		piece->StartAnimation(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
-	else 
+	else
 		piece->SetPosition(m_Board[(int)toSquare.y][(int)toSquare.x].GetPosition());
 	m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
 	m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
@@ -1123,43 +1539,28 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 	else if (piece->GetType() == PieceType::B_KING)
 		m_BlackKing = piece;
 
-	if (moveIsLegal && m_OnlyLegalMoves)
-	{
-		//Check if pawn transforms
-		if (piece->GetType() == PieceType::W_PAWN && toSquare.y == 0)
-		{
-			piece->SetType(PieceType::W_QUEEN);
-			move += "q";
-		}
-		else if (piece->GetType() == PieceType::B_PAWN && toSquare.y == 7)
-		{
-			piece->SetType(PieceType::B_QUEEN);
-			move += "q";
-		}
+	//Check en passant availability
+	if (piece->GetType() == PieceType::W_PAWN && toSquare.y - fromSquare.y == -2)
+		m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y - 1 });
+	else if (piece->GetType() == PieceType::B_PAWN && toSquare.y - fromSquare.y == 2)
+		m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y + 1 });
+	else
+		m_EnPassant = "";
 
-		//Check en passant availability
-		if (piece->GetType() == PieceType::W_PAWN && toSquare.y - fromSquare.y == -2)
-			m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y - 1 });
-		else if (piece->GetType() == PieceType::B_PAWN && toSquare.y - fromSquare.y == 2)
-			m_EnPassant = _ToChessNote(Vector2{ fromSquare.x, fromSquare.y + 1 });
-		else
-			m_EnPassant = "";
-		
-		//Update check variables
-		m_WhiteInCheck = _IsAttacked(m_WhiteKing);
-		m_BlackInCheck = _IsAttacked(m_BlackKing);
-		
-		m_SideToMove = !m_SideToMove;
-	}
+	//Update check variables
+	m_WhiteInCheck = _IsAttacked(m_WhiteKing);
+	m_BlackInCheck = _IsAttacked(m_BlackKing);
+
+	m_SideToMove = !m_SideToMove;
 
 	//Register if necessary
 	if (registerMove)
 	{
-		_RegisterMove(piece, move, capture, !capture && piece->GetType() != PieceType::W_PAWN && piece->GetType() != PieceType::B_PAWN);
+		_RegisterMove(piece, move, moveSN, !capture && piece->GetType() != PieceType::W_PAWN && piece->GetType() != PieceType::B_PAWN);
 		_GetLegalMoves(m_SideToMove);
 
 		//Play sound
-		if (playSound)
+		if (playSound && !GameData::MuteSounds)
 		{
 			if (capture)
 				PlayASound(GameData::Sounds.CaptureSound);
@@ -1169,15 +1570,11 @@ void IBoard::_DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool re
 	}
 }
 
-void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, bool playSound)
+bool IBoard::_TestMove(const std::string& move, bool* capture)
 {
 	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
 	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
-	IBoard::_DoMove(fromSquare, toSquare, registerMove, animated, playSound);
-}
 
-bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool* capture)
-{
 	//Set capture pointer
 	if (capture)
 	{
@@ -1220,7 +1617,7 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 	m_Board[(int)toSquare.y][(int)toSquare.x] = *piece;
 	m_Board[(int)fromSquare.y][(int)fromSquare.x] = Piece(PieceType::NONE, tempPosition);
 	piece = &m_Board[(int)toSquare.y][(int)toSquare.x];
-	
+
 	//Update king pointers if necessary
 	if (piece->GetType() == PieceType::W_KING)
 		m_WhiteKing = piece;
@@ -1244,20 +1641,17 @@ bool IBoard::_TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool*
 	}
 }
 
-bool IBoard::_TestMove(const std::string& move, bool* capture)
-{
-	Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
-	Vector2 toSquare = _ToRealSquare(move.substr(2, 2));
-	return IBoard::_TestMove(fromSquare, toSquare, capture);
-}
-
 void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool animated, bool playSound)
 {
 	Vector2 square = _GetRealSquare(king->GetPosition());
+	std::string move, moveSN;
 
 	//Short castle
 	if (direction > 0)
 	{
+		move = _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 6, square.y });
+		moveSN = _GetShortNotation(move);
+
 		//Move the king in the array
 		Piece& rook = m_Board[(int)square.y][7];
 		Vector2 tempPosition = king->GetPosition();
@@ -1283,11 +1677,11 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		//Register if necessary
 		if (registerMove)
 		{
-			_RegisterMove(king, _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 6, square.y }), false, true);
+			_RegisterMove(king, move, moveSN, true);
 			_GetLegalMoves(m_SideToMove);
 
 			//Play sound
-			if (playSound)
+			if (playSound && !GameData::MuteSounds)
 				PlayASound(GameData::Sounds.CastleSound);
 		}
 
@@ -1295,6 +1689,9 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 	//Long castle
 	else if (direction < 0)
 	{
+		move = _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 2, square.y });
+		moveSN = _GetShortNotation(move);
+
 		//Move the king in the array
 		Piece& rook = m_Board[(int)square.y][0];
 		Vector2 tempPosition = king->GetPosition();
@@ -1320,11 +1717,11 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		//Register if necessary
 		if (registerMove)
 		{
-			_RegisterMove(king, _ToChessNote(Vector2{ 4, square.y }) + _ToChessNote(Vector2{ 2, square.y }), false, true);
+			_RegisterMove(king, move, moveSN, true);
 			_GetLegalMoves(m_SideToMove);
 
 			//Play sound
-			if (playSound)
+			if (playSound && !GameData::MuteSounds)
 				PlayASound(GameData::Sounds.CastleSound);
 		}
 
@@ -1450,7 +1847,7 @@ bool IBoard::_TestCastle(Piece* king, int8_t direction)
 
 void IBoard::_GetLegalMoves(uint8_t side)
 {
-	std::vector<std::pair<Vector2, Vector2>> pseudoLegalMoves;
+	std::vector<std::string> pseudoLegalMoves;
 	m_LegalMoves.clear();
 
 	//White
@@ -1467,30 +1864,63 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::W_PAWN:
 				{
 					//1 move forward
-					if (square.y > 0 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y - 1 });
+					if (square.y > 0 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE)
+					{
+						if (square.y > 1)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 1 }) + "b");
+						}
+					}
 					//Capture diagonally
-					if (square.x > 0 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x - 1].GetSide() == 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 1 });
-					if (square.x < 7 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x + 1].GetSide() == 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 1 });
+					if (square.x > 0 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x - 1].GetSide() == 1)
+					{
+						if (square.y > 1)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) + "b");
+						}
+					}
+					if (square.x < 7 && square.y > 0 && m_Board[(int)square.y - 1][(int)square.x + 1].GetSide() == 1)
+					{
+						if (square.y > 1)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) + "b");
+						}
+					}
 					//2 moves forward
-					if (square.y > 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y - 2 });
+					if (square.y > 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y - 2 }));
 					//En passant
 					if (square.x < 7 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y - 1 }) == m_EnPassant)
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 1 });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 1 }));
 					if (square.x > 0 && square.y > 1 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y - 1 }) == m_EnPassant)
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 1 });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 1 }));
 					break;
 				}
 				case PieceType::W_KNIGHT:
 				{
 					//L shape
-					if (square.y > 1 && square.x < 7 && m_Board[(int)square.y - 2][(int)square.x + 1].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 2 });
-					if (square.y > 0 && square.x < 6 && m_Board[(int)square.y - 1][(int)square.x + 2].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y - 1 });
-					if (square.y < 7 && square.x < 6 && m_Board[(int)square.y + 1][(int)square.x + 2].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y + 1 });
-					if (square.y < 6 && square.x < 7 && m_Board[(int)square.y + 2][(int)square.x + 1].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 2 });
-					if (square.y < 6 && square.x > 0 && m_Board[(int)square.y + 2][(int)square.x - 1].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 2 });
-					if (square.y < 7 && square.x > 1 && m_Board[(int)square.y + 1][(int)square.x - 2].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y + 1 });
-					if (square.y > 0 && square.x > 1 && m_Board[(int)square.y - 1][(int)square.x - 2].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y - 1 });
-					if (square.y > 1 && square.x > 0 && m_Board[(int)square.y - 2][(int)square.x - 1].GetSide() != 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 2 });
+					if (square.y > 1 && square.x < 7 && m_Board[(int)square.y - 2][(int)square.x + 1].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 2 }));
+					if (square.y > 0 && square.x < 6 && m_Board[(int)square.y - 1][(int)square.x + 2].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y - 1 }));
+					if (square.y < 7 && square.x < 6 && m_Board[(int)square.y + 1][(int)square.x + 2].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y + 1 }));
+					if (square.y < 6 && square.x < 7 && m_Board[(int)square.y + 2][(int)square.x + 1].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 2 }));
+					if (square.y < 6 && square.x > 0 && m_Board[(int)square.y + 2][(int)square.x - 1].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 2 }));
+					if (square.y < 7 && square.x > 1 && m_Board[(int)square.y + 1][(int)square.x - 2].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y + 1 }));
+					if (square.y > 0 && square.x > 1 && m_Board[(int)square.y - 1][(int)square.x - 2].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y - 1 }));
+					if (square.y > 1 && square.x > 0 && m_Board[(int)square.y - 2][(int)square.x - 1].GetSide() != 0) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 2 }));
 					break;
 				}
 				case PieceType::W_BISHOP:
@@ -1500,10 +1930,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1513,10 +1943,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1526,10 +1956,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1539,10 +1969,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1556,10 +1986,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1569,10 +1999,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1582,10 +2012,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1595,10 +2025,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1612,10 +2042,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1625,10 +2055,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1638,10 +2068,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1651,10 +2081,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1665,10 +2095,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1678,10 +2108,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1691,10 +2121,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1704,10 +2134,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 1)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1724,17 +2154,17 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetSide() != 0)
-								pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+								pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 
 					//Castling
 					if (square.x == 4 && square.y == 7)
 					{
 						//Short
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y });
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 3, square.y });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y }));
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 3, square.y }));
 						//Long
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y });
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 4, square.y });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y }));
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 4, square.y }));
 					}
 					break;
 				}
@@ -1756,30 +2186,63 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::B_PAWN:
 				{
 					//1 move forward
-					if (square.y < 7 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y + 1 });
+					if (square.y < 7 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE)
+					{
+						if (square.y < 6)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 1 }) + "b");
+						}
+					}
 					//Capture diagonally
-					if (square.x > 0 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x - 1].GetSide() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 1 });
-					if (square.x < 7 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x + 1].GetSide() == 0) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 1 });
+					if (square.x > 0 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x - 1].GetSide() == 0)
+					{
+						if (square.y < 6)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) + "b");
+						}
+					}
+					if (square.x < 7 && square.y < 7 && m_Board[(int)square.y + 1][(int)square.x + 1].GetSide() == 0)
+					{
+						if (square.y < 6)
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }));
+						else
+						{
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) + "q");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) + "n");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) + "r");
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) + "b");
+						}
+					}
 					//2 moves forward
-					if (square.y < 6 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y + 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, square.y + 2 });
+					if (square.y < 6 && m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::NONE && m_Board[(int)square.y + 2][(int)square.x].GetType() == PieceType::NONE && !piece.GetHasMoved()) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, square.y + 2 }));
 					//En passant
 					if (square.x < 7 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x + 1, square.y + 1 }) == m_EnPassant)
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 1 });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 1 }));
 					if (square.x > 0 && square.y < 6 && m_Moves.size() > 0 && _ToChessNote(Vector2{ square.x - 1, square.y + 1 }) == m_EnPassant)
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 1 });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 1 }));
 					break;
 				}
 				case PieceType::B_KNIGHT:
 				{
 					//L shape
-					if (square.y > 1 && square.x < 7 && m_Board[(int)square.y - 2][(int)square.x + 1].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y - 2 });
-					if (square.y > 0 && square.x < 6 && m_Board[(int)square.y - 1][(int)square.x + 2].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y - 1 });
-					if (square.y < 7 && square.x < 6 && m_Board[(int)square.y + 1][(int)square.x + 2].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y + 1 });
-					if (square.y < 6 && square.x < 7 && m_Board[(int)square.y + 2][(int)square.x + 1].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 1, square.y + 2 });
-					if (square.y < 6 && square.x > 0 && m_Board[(int)square.y + 2][(int)square.x - 1].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y + 2 });
-					if (square.y < 7 && square.x > 1 && m_Board[(int)square.y + 1][(int)square.x - 2].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y + 1 });
-					if (square.y > 0 && square.x > 1 && m_Board[(int)square.y - 1][(int)square.x - 2].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y - 1 });
-					if (square.y > 1 && square.x > 0 && m_Board[(int)square.y - 2][(int)square.x - 1].GetSide() != 1) pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 1, square.y - 2 });
+					if (square.y > 1 && square.x < 7 && m_Board[(int)square.y - 2][(int)square.x + 1].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y - 2 }));
+					if (square.y > 0 && square.x < 6 && m_Board[(int)square.y - 1][(int)square.x + 2].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y - 1 }));
+					if (square.y < 7 && square.x < 6 && m_Board[(int)square.y + 1][(int)square.x + 2].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y + 1 }));
+					if (square.y < 6 && square.x < 7 && m_Board[(int)square.y + 2][(int)square.x + 1].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 1, square.y + 2 }));
+					if (square.y < 6 && square.x > 0 && m_Board[(int)square.y + 2][(int)square.x - 1].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y + 2 }));
+					if (square.y < 7 && square.x > 1 && m_Board[(int)square.y + 1][(int)square.x - 2].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y + 1 }));
+					if (square.y > 0 && square.x > 1 && m_Board[(int)square.y - 1][(int)square.x - 2].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y - 1 }));
+					if (square.y > 1 && square.x > 0 && m_Board[(int)square.y - 2][(int)square.x - 1].GetSide() != 1) pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 1, square.y - 2 }));
 					break;
 				}
 				case PieceType::B_BISHOP:
@@ -1789,10 +2252,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1802,10 +2265,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1815,10 +2278,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1828,10 +2291,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1845,10 +2308,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1858,10 +2321,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1871,10 +2334,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1884,10 +2347,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1901,10 +2364,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1914,10 +2377,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1927,10 +2390,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1940,10 +2403,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 							break;
 						}
 						else break;
@@ -1954,10 +2417,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1967,10 +2430,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, square.y });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, square.y }));
 							break;
 						}
 						else break;
@@ -1980,10 +2443,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -1993,10 +2456,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 						else if (tempPiece.GetSide() == 0)
 						{
-							pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x, (float)i });
+							pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x, (float)i }));
 							break;
 						}
 						else break;
@@ -2013,17 +2476,17 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetSide() != 1)
-								pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ (float)i, (float)j });
+								pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ (float)i, (float)j }));
 
 					//Castling
 					if (square.x == 4 && square.y == 0)
 					{
 						//Short
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 2, square.y });
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x + 3, square.y });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 2, square.y }));
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x + 3, square.y }));
 						//Long
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 2, square.y });
-						pseudoLegalMoves.emplace_back(Vector2{ square.x, square.y }, Vector2{ square.x - 4, square.y });
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 2, square.y }));
+						pseudoLegalMoves.emplace_back(_ToChessNote(Vector2{ square.x, square.y }) + _ToChessNote(Vector2{ square.x - 4, square.y }));
 					}
 					break;
 				}
@@ -2033,8 +2496,8 @@ void IBoard::_GetLegalMoves(uint8_t side)
 	}
 
 	for (int i = 0; i < pseudoLegalMoves.size(); i++)
-		if (_TestMove(pseudoLegalMoves[i].first, pseudoLegalMoves[i].second))
-			m_LegalMoves.push_back(_ToChessNote(pseudoLegalMoves[i].first) + _ToChessNote(pseudoLegalMoves[i].second));
+		if (_TestMove(pseudoLegalMoves[i]))
+			m_LegalMoves.push_back(pseudoLegalMoves[i]);
 }
 
 bool IBoard::_IsAttacked(Piece* piece)
@@ -2149,12 +2612,6 @@ bool IBoard::_IsAttacked(Piece* piece)
 	}
 
 	//Check king
-	
-	//int startI = square.x > 0 ? square.x - 1 : square.x;	
-	//int startJ = square.y < 7 ? 6 - square.y : 7 - square.y;
-	//int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-	//int endJ = square.y > 0 ? 9 - square.y : 8 - square.y;
-
 	int startI = square.x > 0 ? square.x - 1 : square.x;
 	int startJ = square.y > 0 ? square.y - 1 : square.y;
 	int endI = square.x < 7 ? square.x + 2 : square.x + 1;
@@ -2173,10 +2630,10 @@ bool IBoard::_IsOnBoard(const Vector2& square)
 	return square.x >= 0 && square.x <= 7 && square.y >= 0 && square.y <= 7;
 }
 
-void IBoard::_RegisterMove(Piece* piece, const std::string& move, bool capture, bool halfMove)
+void IBoard::_RegisterMove(Piece* piece, const std::string& move, const std::string& moveSN, bool halfMove)
 {
 	m_Moves.push_back(move);
-	m_MovesSN.push_back(_GetShortNotation(move, capture));
+	m_MovesSN.push_back(moveSN);
 	m_MoveIndex++;
 	if (halfMove)
 		m_HalfMoveClock++;
@@ -2186,14 +2643,14 @@ void IBoard::_RegisterMove(Piece* piece, const std::string& move, bool capture, 
 		piece->SetHasMoved(true);
 }
 
-void IBoard::_ReloadBoard(bool lastMoveVisible)
+void IBoard::_ReloadBoard(bool lastMoveAnimated, bool lastMovePlaySound)
 {
 	//Reset board
 	std::vector<std::string> movesBackup = m_Moves;
 	std::vector<std::string> movesSNBackup = m_MovesSN;
 	bool flippedBackup = m_Flipped;
 	int32_t moveIndexBackup = m_MoveIndex;
-	int8_t sideToMoveBackup = m_SideToMove;
+	std::string promotionBackup = m_Promotion;
 
 	if (m_DraggedPiece)
 	{
@@ -2202,13 +2659,14 @@ void IBoard::_ReloadBoard(bool lastMoveVisible)
 	}
 	IBoard::Reset();
 	m_Flipped = flippedBackup;
+	m_Promotion = promotionBackup;
 
 	//Redo moves
 	if (moveIndexBackup > -1)
 	{
 		for (int i = 0; i < moveIndexBackup; i++)
 			IBoard::_DoMove(movesBackup[i], true, false, false);
-		IBoard::_DoMove(movesBackup[moveIndexBackup], true, lastMoveVisible, lastMoveVisible);
+		IBoard::_DoMove(movesBackup[moveIndexBackup], true, lastMoveAnimated, lastMovePlaySound);
 	}
 
 	//Add back remaining moves
@@ -2232,11 +2690,12 @@ std::string IBoard::_ToChessNote(const Vector2& square) const
 	return move;
 }
 
-std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
+std::string IBoard::_GetShortNotation(const std::string& move)
 {
 	Vector2 from = _ToRealSquare(move.substr(0, 2));
 	Vector2 to = _ToRealSquare(move.substr(2, 2));
-	Piece& piece = m_Board[(int)to.y][(int)to.x];
+	Piece& piece = m_Board[(int)from.y][(int)from.x];
+	bool capture; _TestMove(move, &capture);
 
 	switch (piece.GetType())
 	{
@@ -2244,7 +2703,7 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 		case PieceType::W_PAWN:
 		case PieceType::B_PAWN:
 		{
-			return (capture ? _ToChessNote(from).substr(0, 1) + "x" : "") + _ToChessNote(to);
+			return (capture ? _ToChessNote(from).substr(0, 1) + "x" : "") + _ToChessNote(to) + (move.size() == 5 ? "=" + std::string(1, toupper(move[4])) : "");
 		}
 		case PieceType::W_KNIGHT:
 		case PieceType::B_KNIGHT:
@@ -2255,13 +2714,14 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			{
 				for (int j = 0; j < 8; j++)
 				{
-					Piece& tempPiece = m_Board[j][i];
+					if (i == from.y && j == from.x) continue;
+					Piece& tempPiece = m_Board[i][j];
 					if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide())
 					{
 						Vector2 diff = { std::abs(to.x - j), std::abs(to.y - i) };
-						if (diff.x == 1 && diff.y == 2 && _TestMove(Vector2{ (float)j, (float)i }, to))
+						if (diff.x == 1 && diff.y == 2 && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 							possible = true;
-						else if (diff.x == 2 && diff.y == 1 && _TestMove(Vector2{ (float)j, (float)i }, to))
+						else if (diff.x == 2 && diff.y == 1 && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 							possible = true;
 						if (from.x == j)
 							sameCol = true;
@@ -2276,8 +2736,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down right
 			for (int i = to.x + 1, j = to.y + 1; i < 8 && j < 8; i++, j++)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "B" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2290,8 +2751,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down left
 			for (int i = to.x - 1, j = to.y + 1; i >= 0 && j < 8; i--, j++)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "B" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2304,8 +2766,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up right
 			for (int i = to.x + 1, j = to.y - 1; i < 8 && j >= 0; i++, j--)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "B" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2318,8 +2781,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up left
 			for (int i = to.x - 1, j = to.y - 1; i >= 0 && j >= 0; i--, j--)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "B" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2337,8 +2801,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check right
 			for (int i = to.x + 1; i < 8; i++)
 			{
+				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ to.y, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ to.y, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "R" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2351,8 +2816,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check left
 			for (int i = to.x - 1; i >= 0; i--)
 			{
+				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ to.y, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ to.y, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "R" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2365,8 +2831,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down
 			for (int i = to.y + 1; i < 8; i++)
 			{
+				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)i, to.x }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)i, to.x }) + _ToChessNote(to)))
 				{
 					if (from.x == to.x)
 						return "R" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2379,8 +2846,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up
 			for (int i = to.y - 1; i >= 0; i--)
 			{
+				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)i, to.x }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)i, to.x }) + _ToChessNote(to)))
 				{
 					if (from.x == to.x)
 						return "R" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2398,8 +2866,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down right
 			for (int i = to.x + 1, j = to.y + 1; i < 8 && j < 8; i++, j++)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2412,8 +2881,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down left
 			for (int i = to.x - 1, j = to.y + 1; i >= 0 && j < 8; i--, j++)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2426,8 +2896,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up right
 			for (int i = to.x + 1, j = to.y - 1; i < 8 && j >= 0; i++, j--)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2440,8 +2911,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up left
 			for (int i = to.x - 1, j = to.y - 1; i >= 0 && j >= 0; i--, j--)
 			{
+				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)j, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)j, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2455,8 +2927,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check right
 			for (int i = to.x + 1; i < 8; i++)
 			{
+				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ to.y, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ to.y, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2469,8 +2942,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check left
 			for (int i = to.x - 1; i >= 0; i--)
 			{
+				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ to.y, (float)i }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ to.y, (float)i }) + _ToChessNote(to)))
 				{
 					if (from.x == i)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2483,8 +2957,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check down
 			for (int i = to.y + 1; i < 8; i++)
 			{
+				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)i, to.x }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)i, to.x }) + _ToChessNote(to)))
 				{
 					if (from.x == to.x)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2497,8 +2972,9 @@ std::string IBoard::_GetShortNotation(const std::string& move, bool capture)
 			//Check up
 			for (int i = to.y - 1; i >= 0; i--)
 			{
+				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
-				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(Vector2{ (float)i, to.x }, to))
+				if (tempPiece.GetType() == piece.GetType() && tempPiece.GetSide() == piece.GetSide() && _TestMove(_ToChessNote(Vector2{ (float)i, to.x }) + _ToChessNote(to)))
 				{
 					if (from.x == to.x)
 						return "Q" + _ToChessNote(from).substr(1, 1) + (capture ? "x" : "") + _ToChessNote(to);
@@ -2532,14 +3008,14 @@ std::string IBoard::_GetLongNotation(std::string& move)
 	//Check castles
 	if (move == "O-O")
 	{
-		if (!m_SideToMove)
+		if (m_SideToMove == 0)
 			return "e1g1";
 		else
 			return "e8g8";
 	}
 	else if (move == "O-O-O")
 	{
-		if (!m_SideToMove)
+		if (m_SideToMove == 0)
 			return "e1c1";
 		else
 			return "e8c8";
@@ -2559,7 +3035,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 	{
 		Vector2 square = _ToRealSquare(move);
 		//White moves
-		if (!m_SideToMove)
+		if (m_SideToMove == 0)
 		{
 			if (m_Board[(int)square.y + 1][(int)square.x].GetType() == PieceType::W_PAWN)
 				return _ToChessNote(Vector2{ square.x, square.y + 1 }) + move;
@@ -2578,6 +3054,8 @@ std::string IBoard::_GetLongNotation(std::string& move)
 			else
 				return "?";
 		}
+		if (move.size() == 5)
+			move[4] = tolower(move[4]);
 	}
 	else if (move.size() == 3)
 	{
@@ -2586,7 +3064,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 		if (islower(move[0]))
 		{
 			//White moves
-			if (!m_SideToMove)
+			if (m_SideToMove == 0)
 			{
 				move.insert(move.begin() + 1, move[2] - 1);
 				return move;
@@ -2597,6 +3075,8 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				move.insert(move.begin() + 1, move[2] + 1);
 				return move;
 			}
+			if (move.size() == 5)
+				move[4] = tolower(move[4]);
 		}
 		//Piece moves or takes unambiguously
 		else
@@ -2968,10 +3448,17 @@ std::string IBoard::_GetLongNotation(std::string& move)
 	//Piece moves ambiguously or promotion
 	else if (move.size() == 4)
 	{
-		Vector2 square = _ToRealSquare(move.substr(2, 2));
 		//Promotion
 		if (move.find('=') != -1)
-			return move;
+		{
+			Vector2 square = _ToRealSquare(move.substr(0, 2));
+			//White moves
+			if (m_SideToMove == 0)
+				return _ToChessNote(Vector2{ square.x, square.y + 1 }) + move.substr(0, 2) + std::string(1, tolower(move[3]));
+			else if (m_SideToMove == 1)
+				return _ToChessNote(Vector2{ square.x, square.y - 1 }) + move.substr(0, 2) + std::string(1, tolower(move[3]));
+		}
+		Vector2 square = _ToRealSquare(move.substr(2, 2));
 		//White moves
 		if (!m_SideToMove)
 		{
@@ -3369,6 +3856,15 @@ std::string IBoard::_GetLongNotation(std::string& move)
 			}
 		}
 	}
+	//Pawn promotes with capture
+	else if (move.size() == 5)
+	{
+		Vector2 square = _ToRealSquare(move.substr(1, 2));
+		if (m_SideToMove == 0)
+			return std::string(1, move[0]) + std::string(1, move[2] - 1) + move.substr(1, 2) + std::string(1, tolower(move[3]));
+		else if (m_SideToMove == 1)
+			return std::string(1, move[0]) + std::string(1, move[2] + 1) + move.substr(1, 2) + std::string(1, tolower(move[3]));
+	}
 	return "";
 }
 
@@ -3403,7 +3899,7 @@ Vector2 IBoard::_ToRealSquare(const std::string& move) const
 
 Vector2 IBoard::_GetSquare(const Vector2& position) const
 {
-	Vector2 square{ (int)((position.x - m_BoardBounds.x) / m_SquareSize), (int)((position.y - m_BoardBounds.y) / m_SquareSize) };
+	Vector2 square{ Clamp((int)((position.x - m_BoardBounds.x) / m_SquareSize), 0, 7), Clamp((int)((position.y - m_BoardBounds.y) / m_SquareSize), 0, 7) };
 	if (m_Flipped)
 	{
 		square.x = 7 - square.x;
@@ -3414,7 +3910,7 @@ Vector2 IBoard::_GetSquare(const Vector2& position) const
 
 Vector2 IBoard::_GetRealSquare(const Vector2& position) const
 {
-	return Vector2{ (float)((int)((position.x - m_BoardBounds.x) / m_SquareSize)), (float)((int)((position.y - m_BoardBounds.y) / m_SquareSize)) };
+	return Vector2{ Clamp((int)((position.x - m_BoardBounds.x) / m_SquareSize), 0, 7), Clamp((int)((position.y - m_BoardBounds.y) / m_SquareSize), 0, 7) };
 }
 
 std::string IBoard::_MovesToString() const

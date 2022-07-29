@@ -25,4 +25,5 @@ struct GameData
 	static float ArrowOpacity;
 
 	static bool SupportAnimations;
+	static bool MuteSounds;
 };

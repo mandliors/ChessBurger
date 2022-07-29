@@ -164,10 +164,10 @@ void AnalysisBoard::Reset(bool resetEnginePosition)
 	m_BestLines_UITexts.clear();
 }
 
-bool AnalysisBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
+bool AnalysisBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
 {
 	m_UpdateScrollbar = true;
-	return IBoard::_Move(fromSquare, toSquare, animated, updateEnginePosition);
+	return IBoard::_Move(move, animated, updateEnginePosition);
 }
 
 void AnalysisBoard::_AnalyzeGame()
@@ -214,7 +214,7 @@ void AnalysisBoard::Movelist_Update()
 		if (newMoveIndex != m_MoveIndex && newMoveIndex < m_Moves.size())
 		{
 			m_MoveIndex = newMoveIndex;
-			_ReloadBoard(false);
+			_ReloadBoard(false, false);
 		}
 	}
 
@@ -312,10 +312,8 @@ void AnalysisBoard::BestLines_Update()
 					analysisData.BestLinesSN[i][j] = "";
 				else
 				{
-					bool capture;
-					_TestMove(analysisData.BestLines[i][j], &capture);
+					analysisData.BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j]);
 					_DoMove(analysisData.BestLines[i][j], false, false);
-					analysisData.BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j], capture);
 				}
 			}
 			
@@ -403,7 +401,7 @@ void AnalysisBoard::BestLines_Update()
 		}
 
 		if (reload)
-			_ReloadBoard(false);
+			_ReloadBoard(false, false);
 	}
 }
 

@@ -95,9 +95,9 @@ void GameBoard::_UpdateBounds()
 	m_BlackClockBounds = Rectangle{ m_BoardBounds.x + m_BoardBounds.width - m_BoardBounds.width * CLOCK_WIDTH_P, (m_BoardBounds.y - CLOCK_HEIGHT_A) * 0.5f, m_BoardBounds.width * CLOCK_WIDTH_P, CLOCK_HEIGHT_A };
 }
 
-bool GameBoard::_Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated, bool updateEnginePosition)
+bool GameBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
 {
-	if (IBoard::_Move(fromSquare, toSquare, animated))
+	if (IBoard::_Move(move, animated, updateEnginePosition))
 	{
 		GameData::CurrentEngine->SearchMove(m_WhiteClock.GetSecondsLeft() * 1000, m_BlackClock.GetSecondsLeft() * 1000, 0, 0);
 		return true;

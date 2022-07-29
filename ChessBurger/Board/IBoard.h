@@ -13,6 +13,7 @@
 #define PIECE_SIZE_P 0.95f
 #define NAMETAG_HEIGHT_A 60
 #define PLAYER_IMAGE_SIZE_A (NAMETAG_HEIGHT_A - 10)
+#define PROMOTION_OVERLAY_OPACITY 0.4f
 #define STARTPOS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 enum class Result
@@ -41,21 +42,18 @@ public:
 	void Clear();
 
 protected:
-	virtual bool _Move(const Vector2& fromSquare, const Vector2& toSquare, bool animated = false, bool updateEnginePosition = true);
-	bool _Move(const std::string& move, bool animated = false, bool updateEnginePosition = true);
-	void _DoMove(const Vector2& fromSquare, const Vector2& toSquare, bool registerMove = true, bool animated = false, bool playSound = true);
+	virtual bool _Move(const std::string& move, bool animated = false, bool updateEnginePosition = true);
 	void _DoMove(const std::string& move, bool registerMove = true, bool animated = false, bool playSound = true);
-	bool _TestMove(const Vector2& fromSquare, const Vector2& toSquare, bool* capture = nullptr);
 	bool _TestMove(const std::string& move, bool* capture = nullptr);
 	void _CastleKing(Piece* king, int8_t direction, bool registerMove = true, bool animated = false, bool playSound = true);
 	bool _TestCastle(Piece* king, int8_t direction);
 	void _GetLegalMoves(uint8_t side);
 	bool _IsAttacked(Piece* piece);
 	bool _IsOnBoard(const Vector2& square);
-	void _RegisterMove(Piece* piece, const std::string& move, bool capture = false, bool halfMove = false);
-	void _ReloadBoard(bool lastMoveVisible);
+	void _RegisterMove(Piece* piece, const std::string& move, const std::string& moveSN, bool halfMove = false);
+	void _ReloadBoard(bool lastMoveAnimated, bool lastMovePlaySound);
 	std::string _ToChessNote(const Vector2& square) const;
-	std::string _GetShortNotation(const std::string& move, bool capture);
+	std::string _GetShortNotation(const std::string& move);
 	std::string _GetLongNotation(std::string& move);
 	Vector2 _ToSquare(const std::string& move) const;
 	Vector2 _ToRealSquare(const std::string& move) const;
@@ -80,6 +78,7 @@ protected:
 	std::string m_WhiteName;
 	std::string m_BlackName;
 	std::string m_EnPassant;
+	std::string m_Promotion;
 	int32_t m_StartingFEN_Movecount;
 	int32_t m_MoveIndex;
 	std::vector<Highlight> m_Highlights;

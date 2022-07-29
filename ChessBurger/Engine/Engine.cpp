@@ -6,6 +6,7 @@
 
 #ifdef ENGINE_DUMP
 	#include <iostream>
+	#include <fstream>
 #endif
 
 Engine::Engine(const std::string& path, const std::string& name)
@@ -34,6 +35,10 @@ Engine::Engine(const std::string& path, const std::string& name)
 	m_AnalysisData.BestLines.resize(GameData::EngineLines);
 	m_AnalysisData.BestLinesSN.resize(GameData::EngineLines);
 	m_AnalysisData.Evaluations.resize(GameData::EngineLines);
+
+#ifdef ENGINE_DUMP
+	m_LogFile = new std::ofstream("log.txt");
+#endif
 }
 
 Engine::~Engine()
@@ -44,6 +49,11 @@ Engine::~Engine()
 	if (m_Thread.joinable())
 		m_Thread.join();
 	_ClosePipe();
+
+#ifdef ENGINE_DUMP
+	m_LogFile->close();
+	delete m_LogFile;
+#endif
 }
 
 bool Engine::Init()
@@ -183,7 +193,7 @@ void Engine::_Worker()
 			std::vector<std::string> messageLines = _Split(message, '\n');
 #ifdef ENGINE_DUMP
 			if (message != "no message")
-				std::cout << message;
+				(*m_LogFile) << message;
 #endif			
 			if (m_Mode == Mode::ANALYZE)
 			{
@@ -249,7 +259,7 @@ void Engine::_WritePipe(const std::string& message) const
 {
 	DWORD write;
 #ifdef ENGINE_DUMP
-	std::cout << "> " << message << std::endl;
+	(*m_LogFile) << "> " << message << std::endl;
 #endif
 	WriteFile(m_PipinW, (message + "\n").c_str(), message.size() + 1, &write, NULL);
 }
