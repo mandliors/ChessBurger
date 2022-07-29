@@ -665,16 +665,16 @@ void IBoard::Draw() const
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y -= m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y -= m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y -= m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 			}
 			else
 			{
@@ -684,16 +684,16 @@ void IBoard::Draw() const
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_QUEEN], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y += m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_KNIGHT], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y += m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_ROOK], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 
 				position.y += m_SquareSize;
-				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::W_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
+				DrawTexturePro(GameData::Textures.Atlas, GameData::Textures.PieceRects[(int)PieceType::B_BISHOP], Rectangle{ position.x, position.y, (float)Piece::Size, (float)Piece::Size }, { 0, 0 }, 0.0f, Fade(WHITE, PROMOTION_OVERLAY_OPACITY));
 			}
 		}
 	}
@@ -1338,7 +1338,7 @@ bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosi
 				{
 					Piece& piece = m_Board[(int)fromSquare.y][(int)fromSquare.x];
 					//Already promoting, now make the move, or immediate promotion (by the computer)
-					if (m_Promotion != "" || (move.size() == 5 || move != "O-O-O"))
+					if (m_Promotion != "" || (move.size() == 5 && move != "O-O-O"))
 					{
 						m_Promotion = "";
 						_ReloadBoard(false, false);
