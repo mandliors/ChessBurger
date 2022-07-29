@@ -1338,7 +1338,7 @@ bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosi
 				{
 					Piece& piece = m_Board[(int)fromSquare.y][(int)fromSquare.x];
 					//Already promoting, now make the move, or immediate promotion (by the computer)
-					if (m_Promotion != "" || (move.size() == 5 || move != "O-O-O"))
+					if (m_Promotion != "" || (move.size() == 5 && move != "O-O-O"))
 					{
 						m_Promotion = "";
 						_ReloadBoard(false, false);
