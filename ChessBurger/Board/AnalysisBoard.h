@@ -21,7 +21,14 @@
 #define BESTLINES_SPACING 6
 #define BESTLINES_UITEXT_SIZE 18
 #define BESTLINES_UITEXT_SIZE_RATIO 1.2f
-#define BESTLINES_UPDATES_PER_SEC 30
+
+//EvalBar definitions
+#define EVALBAR_ANIMATION_SECONDS (1.0f / (float)UPDATES_PER_SEC)
+
+//Other definitions
+#define UPDATES_PER_SEC 2
+#define SWITCH_BORDER_WIDTH 1
+#define SWITCH_ROUNDNESS 0.4f
 
 enum class AnalysisState
 {
@@ -44,11 +51,13 @@ public:
 
 protected:
 	bool _Move(const std::string& move, bool animated = false, bool updateEnginePosition = true) override;
-
+	bool _GuiSwitch(const Rectangle& bounds, bool value, bool draw) const;
+	
 private:
 	void _AnalyzeGame();
 
 	//UI functions
+	void EvalBar_Update();
 	void EvalBar_Draw() const;
 
 	void Movelist_Update();
@@ -63,9 +72,14 @@ private:
 	Arrow m_BestMoveArrow;
 	uint32_t m_FrameCounter;
 	AnalysisState m_AnalysisState;
+	bool m_Analyzing;
 
 	//EvalBar
 	Rectangle m_EvalBar_Bounds;
+	double m_StartTime;
+	float m_PreviousHeight;
+	float m_Height;
+	float m_NextHeight;
 
 	//Movelist
 	Rectangle m_Movelist_Bounds;

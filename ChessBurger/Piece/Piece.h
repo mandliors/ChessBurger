@@ -3,7 +3,7 @@
 #include "raylib.h"
 #include <memory>
 
-#define ANIMATION_SECONDS 0.2f
+#define PIECE_ANIMATION_SECONDS 0.2f
 
 enum class PieceType
 {
@@ -52,7 +52,6 @@ private:
 	Vector2 m_NextPosition;
 	Rectangle m_BoardBounds;
 	double m_StartTime;
-	double m_CurrentTime;
 	bool m_HasMoved;
 	bool m_Drag;
 	bool m_Animating;

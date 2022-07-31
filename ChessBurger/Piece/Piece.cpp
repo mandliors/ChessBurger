@@ -14,10 +14,10 @@ struct TextureBuffer
 };
 
 Piece::Piece(PieceType type, const Vector2& position)
-	: m_Type(type), m_Position(position), m_PreviousPosition(position), m_NextPosition(position), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0.0), m_Drag(false), m_Animating(false) { }
+	: m_Type(type), m_Position(position), m_PreviousPosition(position), m_NextPosition(position), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_Drag(false), m_Animating(false) { }
 
 Piece::Piece()
-	: m_Type(PieceType::NONE), m_Position(Vector2{ 0, 0 }), m_PreviousPosition(Vector2{ 0, 0 }), m_NextPosition(Vector2{ 0, 0 }), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_CurrentTime(0), m_Drag(false), m_Animating(false) { }
+	: m_Type(PieceType::NONE), m_Position(Vector2{ 0, 0 }), m_PreviousPosition(Vector2{ 0, 0 }), m_NextPosition(Vector2{ 0, 0 }), m_HasMoved(false), m_BoardBounds(Rectangle{ -1, -1, -1, -1 }), m_StartTime(0.0), m_Drag(false), m_Animating(false) { }
 
 void Piece::Update()
 {
@@ -29,13 +29,13 @@ void Piece::Update()
 	}
 	else if (m_Animating)
 	{
-		m_CurrentTime = GetTime();
+		double currentTime = GetTime();
 
 		//Still animating
-		if (m_CurrentTime - m_StartTime < ANIMATION_SECONDS)
+		if (currentTime - m_StartTime < PIECE_ANIMATION_SECONDS)
 		{
-			m_Position.x = EaseLinearIn(m_CurrentTime - m_StartTime, m_PreviousPosition.x, m_NextPosition.x - m_PreviousPosition.x, ANIMATION_SECONDS);
-			m_Position.y = EaseLinearIn(m_CurrentTime - m_StartTime, m_PreviousPosition.y, m_NextPosition.y - m_PreviousPosition.y, ANIMATION_SECONDS);
+			m_Position.x = EaseLinearIn(currentTime - m_StartTime, m_PreviousPosition.x, m_NextPosition.x - m_PreviousPosition.x, PIECE_ANIMATION_SECONDS);
+			m_Position.y = EaseLinearIn(currentTime - m_StartTime, m_PreviousPosition.y, m_NextPosition.y - m_PreviousPosition.y, PIECE_ANIMATION_SECONDS);
 		}
 		//Animation ends
 		else

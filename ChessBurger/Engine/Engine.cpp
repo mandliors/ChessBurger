@@ -32,9 +32,7 @@ Engine::Engine(const std::string& path, const std::string& name)
 	m_hProcess = processInfo.hProcess;
 	m_hThread = processInfo.hThread;
 
-	m_AnalysisData.BestLines.resize(GameData::EngineLines);
-	m_AnalysisData.BestLinesSN.resize(GameData::EngineLines);
-	m_AnalysisData.Evaluations.resize(GameData::EngineLines);
+	ResizeAnalysisData();
 
 #ifdef ENGINE_DUMP
 	m_LogFile = new std::ofstream("log.txt");
@@ -86,6 +84,7 @@ void Engine::ResetForAnalyzing()
 		_WritePipe("ucinewgame");
 		_WritePipe("position startpos");
 		SetAnalyseMode(true);
+		ResizeAnalysisData();
 	}
 }
 
@@ -107,6 +106,21 @@ void Engine::ResetForWaiting()
 		m_Mode = Mode::WAIT;
 		_WritePipe("stop");
 	}
+}
+
+void Engine::ResetAnalysisData()
+{
+	m_AnalysisData.BestLines.clear();
+	m_AnalysisData.BestLinesSN.clear();
+	m_AnalysisData.Evaluations.clear();
+	m_AnalysisData.Depth = 0;
+}
+
+void Engine::ResizeAnalysisData()
+{
+	m_AnalysisData.BestLines.resize(GameData::EngineLines);
+	m_AnalysisData.BestLinesSN.resize(GameData::EngineLines);
+	m_AnalysisData.Evaluations.resize(GameData::EngineLines);
 }
 
 void Engine::SetPosition(const std::string& fen)
@@ -145,6 +159,11 @@ void Engine::SetAnalyseMode(bool value)
 		_WritePipe("setoption name UCI_AnalyseMode value true");
 	else
 		_WritePipe("setoption name UCI_AnalyseMode value false");
+}
+
+void Engine::SetMode(Mode mode)
+{
+	m_Mode = mode;
 }
 
 void Engine::GoInfinite()
