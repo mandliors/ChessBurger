@@ -24,6 +24,8 @@ struct GameData
 	static Color ArrowColor;
 	static float ArrowOpacity;
 
+	static uint32_t AnalysisDepth;
+
 	static bool SupportAnimations;
 	static bool MuteSounds;
 };

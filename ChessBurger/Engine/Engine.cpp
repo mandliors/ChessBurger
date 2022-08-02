@@ -171,7 +171,7 @@ void Engine::GoInfinite()
 	_WritePipe("go infinite");
 }
 
-void Engine::SearchMove(uint32_t wtime, uint32_t btime, uint32_t winc, uint32_t binc)
+void Engine::SearchMove(int wtime, int btime, int winc, int binc)
 {
 	_WritePipe("go wtime " + std::to_string(wtime) + " btime " + std::to_string(btime) + " winc " + std::to_string(winc) + " binc " + std::to_string(binc));
 }
@@ -223,18 +223,18 @@ void Engine::_Worker()
 						continue;
 
 					//Read depth
-					int depthIdx = message.find("depth");
+					int depthIdx = (int)message.find("depth");
 					if (depthIdx != -1)
 						m_AnalysisData.Depth = stoi(_GetSubstringUntilChar(message, depthIdx + 6, ' '));
 
 					//Read evaluation and line
-					int mpvIdx = message.find("multipv");
+					int mpvIdx = (int)message.find("multipv");
 					if (mpvIdx != -1)
 					{
 						int rank = stoi(_GetSubstringUntilChar(message, mpvIdx + 8, ' '));
 
 						//Read evaluation
-						int evalIdx = message.find("score cp");
+						int evalIdx = (int)message.find("score cp");
 						if (evalIdx != -1)
 						{
 							float eval = stof(_GetSubstringUntilChar(message, evalIdx + 9, ' ')) / 100.0f * (m_WhiteToMove * 2 - 1);
@@ -242,13 +242,13 @@ void Engine::_Worker()
 						}
 						else
 						{
-							evalIdx = message.find("score mate");
-							float eval = stoi(_GetSubstringUntilChar(message, evalIdx + 11, ' ')) * (m_WhiteToMove * 2 - 1);
+							evalIdx = (int)message.find("score mate");
+							float eval = stof(_GetSubstringUntilChar(message, evalIdx + 11, ' ')) * (m_WhiteToMove * 2 - 1);
 							m_AnalysisData.Evaluations[rank - 1] = (eval >= 0 ? "+M" : "-M") + std::to_string((int)std::abs(eval));
 						}
 
 						//Read line
-						int pv = message.rfind("pv");
+						int pv = (int)message.rfind("pv");
 						if (pv != -1)
 						{
 							std::string line = _GetSubstringUntilChar(message, pv + 3, '\r');
@@ -262,7 +262,7 @@ void Engine::_Worker()
 				for (int i = 0; i < messageLines.size(); i++)
 				{
 					message = messageLines[i];
-					int bestMoveIdx = message.find("bestmove");
+					int bestMoveIdx = (int)message.find("bestmove");
 					if (bestMoveIdx == -1)
 						continue;
 					m_BestMove = _GetSubstringUntilChar(message, bestMoveIdx + 9, ' ');
@@ -280,7 +280,7 @@ void Engine::_WritePipe(const std::string& message) const
 #ifdef ENGINE_DUMP
 	(*m_LogFile) << "> " << message << std::endl;
 #endif
-	WriteFile(m_PipinW, (message + "\n").c_str(), message.size() + 1, &write, NULL);
+	WriteFile(m_PipinW, (message + "\n").c_str(), (DWORD)message.size() + 1, &write, NULL);
 }
 
 std::string Engine::_ReadPipe() const
@@ -314,7 +314,7 @@ bool Engine::_WaitForResponse(const std::string& message, uint32_t maxms) const
 	{
 		response = _ReadPipe();
 		clock_t currentTime = (clock() - prevTime) * 1000 / CLOCKS_PER_SEC;
-		if (currentTime > maxms)
+		if ((long)currentTime > (long)maxms)
 			return false;
 	}
 	return true;

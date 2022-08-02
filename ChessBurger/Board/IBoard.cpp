@@ -7,27 +7,29 @@
 #include <cmath>
 #include <algorithm>
 
+#include <iostream>
+
 std::unordered_map<PieceType, char> IBoard::FEN_Codes;
 std::unordered_map<char, PieceType> IBoard::FEN_Codes_Backwards;
 
 IBoard::IBoard(const Rectangle& bounds, Game* owner)
-	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_AnalyseMode(false), m_WhiteName("Player 1"), m_Side(0), m_BlackName("Player 2"), m_EnPassant(""), m_Promotion(""), m_StartingFEN_Movecount(-1), m_MoveIndex(-1), m_SelectedMoves({}), m_StartingFEN(STARTPOS_FEN), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false), m_WhiteShort(true), m_WhiteLong(true), m_BlackShort(true), m_BlackLong(true), m_ShowNametag(false), m_ShowLegalMoves(true), m_OnlyLegalMoves(true), m_Owner(owner)
+	: m_Moves({}), m_MovesSN({}), m_LegalMoves({}), m_HalfMoveClock(0), m_AnalyseMode(false), m_WhiteName("Player 1"), m_Side(0), m_BlackName("Player 2"), m_EnPassant(""), m_Promotion(""), m_StartingFEN_Movecount(0), m_MoveIndex(-1), m_SelectedMoves({}), m_StartingFEN(STARTPOS_FEN), m_Arrows({}), m_Highlights({}), m_SelectionFrom({}), m_LastMoveFrom({}), m_LastMoveTo({}), m_LeftDragStart({}), m_RightDragStart(Vector2{-1, -1}), m_MouseDownPosition(Vector2{-1, -1}), m_Result(Result::NONE), m_BoardBounds({}), m_SquareSize(0), m_DraggedPiece(nullptr), m_SelectedPiece(nullptr), m_WhiteKing(nullptr), m_BlackKing(nullptr), m_Flipped(false), m_PointingHand(false), m_SideToMove(1), m_WhiteInCheck(false), m_BlackInCheck(false), m_WhiteShort(true), m_WhiteLong(true), m_BlackShort(true), m_BlackLong(true), m_ShowNametag(false), m_ShowLegalMoves(true), m_OnlyLegalMoves(true), m_Owner(owner)
 {
 	//Create arrow head texture
 	int size = 500;
 	float hScale = 0.866f;
 	Image headImg = GenImageColor(size, size, Color{ 0, 0, 0, 0 });
-	for (float i = 0; i < size * 0.5f; i++)
+	for (int i = 0; i < size * 0.5f; i++)
 	{
-		for (float j = 0; j < (i + 1) * hScale; j++)
+		for (int j = 0; j < (i + 1) * hScale; j++)
 		{
 			ImageDrawPixel(&headImg, 2 * j, i, WHITE);
 			ImageDrawPixel(&headImg, 2 * j + 1, i, WHITE);
 		}
 	}
-	for (float i = 0; i < size * 0.5f; i++)
+	for (int i = 0; i < size * 0.5f; i++)
 	{
-		for (float j = 0; j < (i + 1) * hScale; j++)
+		for (int j = 0; j < (i + 1) * hScale; j++)
 		{
 			ImageDrawPixel(&headImg, 2 * j, size - i - 1, WHITE);
 			ImageDrawPixel(&headImg, 2 * j + 1, size - i - 1, WHITE);
@@ -86,8 +88,8 @@ void IBoard::Update()
 			{
 				if (!m_Flipped)
 				{
-					int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
-					int idx = (mousePosition.y - m_BoardBounds.y) / m_SquareSize;
+					int startX = (int)m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+					int idx = (int)std::floor((mousePosition.y - m_BoardBounds.y) / m_SquareSize);
 					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
 					{
 						overlap = true;
@@ -118,8 +120,8 @@ void IBoard::Update()
 				}
 				else
 				{
-					int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
-					int idx = (m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize;
+					int startX = (int)m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+					int idx = (int)std::floor((m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize);
 					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
 					{
 
@@ -155,8 +157,8 @@ void IBoard::Update()
 			{
 				if (!m_Flipped)
 				{
-					int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
-					int idx = (m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize;
+					int startX = (int)m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
+					int idx = (int)std::floor((m_BoardBounds.y + 8 * m_SquareSize - mousePosition.y) / m_SquareSize);
 					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
 					{
 						overlap = true;
@@ -192,8 +194,8 @@ void IBoard::Update()
 				}
 				else
 				{
-					int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
-					int idx = (mousePosition.y - m_BoardBounds.y) / m_SquareSize;
+					int startX = (int)m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
+					int idx = (int)std::floor((mousePosition.y - m_BoardBounds.y) / m_SquareSize);
 					if (startX <= mousePosition.x && mousePosition.x <= startX + m_SquareSize && idx <= 3)
 					{
 
@@ -346,17 +348,20 @@ void IBoard::Update()
 	}
 
 	//Check arrows
-	if (IsKeyPressed(KEY_LEFT) && m_MoveIndex > 0)
+	if (IsKeyPressed(KEY_LEFT) && m_MoveIndex > -1)
 	{
 		m_MoveIndex--;
 		m_Promotion = "";
 		_ReloadBoard(false, false);
 	}
-	else if (IsKeyPressed(KEY_RIGHT) && m_MoveIndex < m_Moves.size() - 1)
+	else if (IsKeyPressed(KEY_RIGHT)) //second condition fails apparently
 	{
-		m_MoveIndex++;
-		m_Promotion = "";
-		_ReloadBoard(true, true);
+		if (m_MoveIndex < (int)m_Moves.size() - 1)
+		{
+			m_MoveIndex++;
+			m_Promotion = "";
+			_ReloadBoard(true, true);
+		}
 	}
 	else if (IsKeyPressed(KEY_UP) && m_MoveIndex != 0 && m_Moves.size() > 0)
 	{
@@ -366,7 +371,7 @@ void IBoard::Update()
 	}
 	else if (IsKeyPressed(KEY_DOWN) && m_MoveIndex != m_Moves.size() - 1)
 	{
-		m_MoveIndex = m_Moves.size() - 1;
+		m_MoveIndex = (int)m_Moves.size() - 1;
 		m_Promotion = "";
 		_ReloadBoard(false, false);
 	}
@@ -457,7 +462,7 @@ void IBoard::Update()
 	}
 
 	//Update last move
-	if (m_Moves.size() > 0)
+	if (m_Moves.size() > 0 && m_MoveIndex > -1)
 	{
 		std::string move = m_Moves[m_MoveIndex];
 		Vector2 fromSquare = _ToRealSquare(move.substr(0, 2));
@@ -580,8 +585,8 @@ void IBoard::Draw() const
 		m_Highlights[i].Draw(m_BoardBounds);
 
 	//Draw last move
-	if (m_Moves.size() > 0) m_LastMoveFrom.Draw(m_BoardBounds);
-	if (m_Moves.size() > 0) m_LastMoveTo.Draw(m_BoardBounds);
+	if (m_Moves.size() > 0 && m_MoveIndex > -1) m_LastMoveFrom.Draw(m_BoardBounds);
+	if (m_Moves.size() > 0 && m_MoveIndex > -1) m_LastMoveTo.Draw(m_BoardBounds);
 
 	//Highlight selected piece
 	if (m_SelectedPiece) m_SelectionFrom.Draw(m_BoardBounds);
@@ -617,9 +622,9 @@ void IBoard::Draw() const
 		{
 			if (!m_Flipped)
 			{
-				int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
-				DrawRectangle(startX, m_BoardBounds.y, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
-				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+				float startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * (float)m_SquareSize;
+				DrawRectangleV(Vector2{ startX, m_BoardBounds.y }, Vector2{ (float)m_SquareSize, 4.0f * m_SquareSize }, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangleV(Vector2{ startX + 5.0f, m_BoardBounds.y + 5.0f }, Vector2{ m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f }, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
@@ -636,9 +641,9 @@ void IBoard::Draw() const
 			}
 			else
 			{
-				int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
-				DrawRectangle(startX, m_BoardBounds.y + 4 * m_SquareSize, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
-				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 4 * m_SquareSize + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+				float startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * (float)m_SquareSize;
+				DrawRectangleV(Vector2{ startX, m_BoardBounds.y + 4.0f * m_SquareSize }, Vector2{ (float)m_SquareSize, 4.0f * m_SquareSize }, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangleV(Vector2{ startX + 5.0f, m_BoardBounds.y + 4 * m_SquareSize + 5.0f }, Vector2{ m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f }, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
@@ -659,9 +664,9 @@ void IBoard::Draw() const
 		{
 			if (!m_Flipped)
 			{
-				int startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * m_SquareSize;
-				DrawRectangle(startX, m_BoardBounds.y + 4 * m_SquareSize, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
-				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 4 * m_SquareSize + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+				float startX = m_BoardBounds.x + (m_Promotion[2] - 'a') * (float)m_SquareSize;
+				DrawRectangleV(Vector2{ startX, m_BoardBounds.y + 4.0f * m_SquareSize }, Vector2{ (float)m_SquareSize, 4.0f * m_SquareSize }, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangleV(Vector2{ startX + 5.0f, m_BoardBounds.y + 4.0f * m_SquareSize + 5.0f }, Vector2{ (float)m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f }, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
@@ -678,9 +683,9 @@ void IBoard::Draw() const
 			}
 			else
 			{
-				int startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * m_SquareSize;
-				DrawRectangle(startX, m_BoardBounds.y, m_SquareSize, 4 * m_SquareSize, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
-				DrawRectangle(startX + 5.0f, m_BoardBounds.y + 5.0f, m_SquareSize - 10.0f, 4 * m_SquareSize - 10.0f, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
+				float startX = m_BoardBounds.x + ('h' - m_Promotion[2]) * (float)m_SquareSize;
+				DrawRectangleV(Vector2{ startX, m_BoardBounds.y }, Vector2{ (float)m_SquareSize, 4.0f * m_SquareSize }, Fade(GameData::Colors.BgFocused, PROMOTION_OVERLAY_OPACITY));
+				DrawRectangleV(Vector2{ startX + 5.0f, m_BoardBounds.y + 5.0f }, Vector2{ m_SquareSize - 10.0f, 4.0f * m_SquareSize - 10.0f }, Fade(GameData::Colors.FgFocused, PROMOTION_OVERLAY_OPACITY));
 
 				Vector2 position = _ToSquare(m_Promotion.substr(2, 2));
 				position = m_Board[(int)position.y][(int)position.x].GetPosition();
@@ -717,19 +722,19 @@ void IBoard::Draw() const
 
 void IBoard::_UpdateBounds()
 {
-	float boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * m_ShowNametag;
+	int boardSize = GetScreenHeight() - 2 * NAMETAG_HEIGHT_A * m_ShowNametag;
 	//Match height
 	if (boardSize < GetScreenWidth())
 	{
 		float offset = (GetScreenWidth() - boardSize) * 0.5f;
-		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+		m_BoardBounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, (float)boardSize, (float)boardSize };
 	}
 	//Match width
 	else
 	{
 		boardSize = GetScreenWidth();
 		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
-		m_BoardBounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
+		m_BoardBounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, (float)boardSize, (float)boardSize };
 	}
 	m_SquareSize = boardSize / 8;
 
@@ -748,8 +753,8 @@ void IBoard::_UpdateBounds()
 	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
 
 	//Update pieces
-	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
-	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
+	Piece::Size = (int)std::roundf(PIECE_SIZE_P * (float)m_SquareSize);
+	int offset = (int)std::roundf((1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f);
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -790,7 +795,7 @@ void IBoard::Reset(bool resetEnginePosition)
 {
 	Clear();
 
-	if (m_StartingFEN_Movecount != -1)
+	if (m_StartingFEN_Movecount != 0)
 		LoadFEN(m_StartingFEN);
 	else
 	{
@@ -904,6 +909,7 @@ bool IBoard::LoadFEN(const std::string& fen)
 		m_DraggedPiece->SetDrag(false);
 		m_DraggedPiece = nullptr;
 	}
+	m_Result = Result::NONE;
 	Clear();
 	std::string& token = splitted[0];
 	if (std::count(token.begin(), token.end(), '/') != 7)
@@ -1151,7 +1157,7 @@ bool IBoard::LoadPGN(std::string& pgn)
 	Reset();
 
 	std::string move = ""; char c;
-	for (int i = pgn.find_first_of('.') + 2; i < pgn.size(); i++)
+	for (int i = (int)pgn.find_first_of('.') + 2; i < pgn.size(); i++)
 	{
 		c = pgn[i];
 		if (c == '.')
@@ -1302,7 +1308,7 @@ bool IBoard::_Move(const std::string& move, bool animated, bool updateEnginePosi
 		else
 		{
 			int8_t sideToMove = (m_SideToMove + m_Moves.size() - m_MoveIndex + 1) % 2;
-			m_MoveIndex = m_Moves.size() - 1;
+			m_MoveIndex = (int)m_Moves.size() - 1;
 			_ReloadBoard(false, false);
 			m_SideToMove = sideToMove;
 			m_Highlights.clear();
@@ -1397,9 +1403,9 @@ void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, 
 	{
 		//Is the move a castle
 		if (piece->GetType() == PieceType::W_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
-			return _CastleKing(m_WhiteKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
+			return _CastleKing(m_WhiteKing, (toSquare.x - fromSquare.x) / 2 > 0.0f ? 1 : -1, registerMove, animated, playSound);
 		else if (piece->GetType() == PieceType::B_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
-			return _CastleKing(m_BlackKing, (toSquare.x - fromSquare.x) / 2, registerMove, animated, playSound);
+			return _CastleKing(m_BlackKing, (toSquare.x - fromSquare.x) / 2 > 0.0f ? 1 : -1, registerMove, animated, playSound);
 
 		//Is the move a promotion
 		if (move.size() == 5)
@@ -1455,7 +1461,7 @@ void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, 
 			m_WhiteInCheck = _IsAttacked(m_WhiteKing);
 			m_BlackInCheck = _IsAttacked(m_BlackKing);
 
-			m_SideToMove = !m_SideToMove;
+			m_SideToMove = 1 - m_SideToMove;
 
 			//Register if necessary
 			if (registerMove)
@@ -1551,7 +1557,7 @@ void IBoard::_DoMove(const std::string& move, bool registerMove, bool animated, 
 	m_WhiteInCheck = _IsAttacked(m_WhiteKing);
 	m_BlackInCheck = _IsAttacked(m_BlackKing);
 
-	m_SideToMove = !m_SideToMove;
+	m_SideToMove = 1 - m_SideToMove;
 
 	//Register if necessary
 	if (registerMove)
@@ -1600,9 +1606,9 @@ bool IBoard::_TestMove(const std::string& move, bool* capture)
 	//Is the move a castle
 	Piece* piece = &m_Board[(int)fromSquare.y][(int)fromSquare.x];
 	if (piece->GetType() == PieceType::W_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
-		return _TestCastle(m_WhiteKing, (toSquare.x - fromSquare.x) / 2);
+		return _TestCastle(m_WhiteKing, (toSquare.x - fromSquare.x) / 2 > 0 ? 1 : -1);
 	else if (piece->GetType() == PieceType::B_KING && (std::abs(toSquare.x - fromSquare.x) == 2 || std::abs(toSquare.x - fromSquare.x) == 3 || std::abs(toSquare.x - fromSquare.x) == 4))
-		return _TestCastle(m_BlackKing, (toSquare.x - fromSquare.x) / 2);
+		return _TestCastle(m_BlackKing, (toSquare.x - fromSquare.x) / 2 > 0 ? 1 : -1);
 
 	//Backup current state
 	Piece backup[8][8];
@@ -1672,7 +1678,7 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		m_Board[(int)square.y][5] = rook;
 		m_Board[(int)square.y][7] = Piece(PieceType::NONE, tempPosition);
 
-		m_SideToMove = !m_SideToMove;
+		m_SideToMove = 1 - m_SideToMove;
 
 		//Register if necessary
 		if (registerMove)
@@ -1712,7 +1718,7 @@ void IBoard::_CastleKing(Piece* king, int8_t direction, bool registerMove, bool 
 		m_Board[(int)square.y][3] = rook;
 		m_Board[(int)square.y][0] = Piece(PieceType::NONE, tempPosition);
 
-		m_SideToMove = !m_SideToMove;
+		m_SideToMove = 1 - m_SideToMove;
 
 		//Register if necessary
 		if (registerMove)
@@ -1926,7 +1932,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::W_BISHOP:
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -1939,7 +1945,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -1952,7 +1958,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -1965,7 +1971,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -1982,7 +1988,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::W_ROOK:
 				{
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -1995,7 +2001,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2008,7 +2014,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2021,7 +2027,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2038,7 +2044,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::W_QUEEN:
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2051,7 +2057,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2064,7 +2070,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2077,7 +2083,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2091,7 +2097,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					}
 
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2104,7 +2110,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2117,7 +2123,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2130,7 +2136,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2147,10 +2153,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::W_KING:
 				{
 					//Check surrounding squares
-					int startI = square.x > 0 ? square.x - 1 : square.x;
-					int startJ = square.y > 0 ? square.y - 1 : square.y;
-					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					int startI = square.x > 0 ? (int)square.x - 1 : (int)square.x;
+					int startJ = square.y > 0 ? (int)square.y - 1 : (int)square.y;
+					int endI = square.x < 7 ? (int)square.x + 2 : (int)square.x + 1;
+					int endJ = square.y < 7 ? (int)square.y + 2 : (int)square.y + 1;
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetSide() != 0)
@@ -2248,7 +2254,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::B_BISHOP:
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2261,7 +2267,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2274,7 +2280,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2287,7 +2293,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2304,7 +2310,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::B_ROOK:
 				{
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2317,7 +2323,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2330,7 +2336,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2343,7 +2349,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2360,7 +2366,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::B_QUEEN:
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2373,7 +2379,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2386,7 +2392,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2399,7 +2405,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == -1)
@@ -2413,7 +2419,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 					}
 
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2426,7 +2432,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == -1)
@@ -2439,7 +2445,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2452,7 +2458,7 @@ void IBoard::_GetLegalMoves(uint8_t side)
 						else break;
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == -1)
@@ -2469,10 +2475,10 @@ void IBoard::_GetLegalMoves(uint8_t side)
 				case PieceType::B_KING:
 				{
 					//Check surrounding squares
-					int startI = square.x > 0 ? square.x - 1 : square.x;
-					int startJ = square.y > 0 ? square.y - 1 : square.y;
-					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					int startI = square.x > 0 ? (int)square.x - 1 : (int)square.x;
+					int startJ = square.y > 0 ? (int)square.y - 1 : (int)square.y;
+					int endI = square.x < 7 ? (int)square.x + 2 : (int)square.x + 1;
+					int endJ = square.y < 7 ? (int)square.y + 2 : (int)square.y + 1;
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetSide() != 1)
@@ -2514,7 +2520,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 	PieceType kingType = (PieceType)((int)PieceType::W_KING + (piece->GetSide() + 6) % 7);
 
 	//Check right
-	for (int i = square.x + 1; i < 8; i++)
+	for (int i = (int)square.x + 1; i < 8; i++)
 	{
 		Piece& tempPiece = m_Board[(int)square.y][i];
 		if (tempPiece.GetType() == rookType || tempPiece.GetType() == queenType)
@@ -2523,7 +2529,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check left
-	for (int i = square.x - 1; i >= 0; i--)
+	for (int i = (int)square.x - 1; i >= 0; i--)
 	{
 		Piece& tempPiece = m_Board[(int)square.y][i];
 		if (tempPiece.GetType() == rookType || tempPiece.GetType() == queenType)
@@ -2532,7 +2538,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check up
-	for (int i = square.y + 1; i < 8; i++)
+	for (int i = (int)square.y + 1; i < 8; i++)
 	{
 		Piece& tempPiece = m_Board[i][(int)square.x];
 		if (tempPiece.GetType() == rookType || tempPiece.GetType() == queenType)
@@ -2541,7 +2547,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check down
-	for (int i = square.y - 1; i >= 0; i--)
+	for (int i = (int)square.y - 1; i >= 0; i--)
 	{
 		Piece& tempPiece = m_Board[i][(int)square.x];
 		if (tempPiece.GetType() == rookType || tempPiece.GetType() == queenType)
@@ -2551,7 +2557,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 	}
 
 	//Check down right
-	for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+	for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 	{
 		Piece& tempPiece = m_Board[j][i];
 		if (tempPiece.GetType() == bishopType || tempPiece.GetType() == queenType)
@@ -2560,7 +2566,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check down left
-	for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+	for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 	{
 		Piece& tempPiece = m_Board[j][i];
 		if (tempPiece.GetType() == bishopType || tempPiece.GetType() == queenType)
@@ -2569,7 +2575,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check up right
-	for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+	for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 	{
 		Piece& tempPiece = m_Board[j][i];
 		if (tempPiece.GetType() == bishopType || tempPiece.GetType() == queenType)
@@ -2578,7 +2584,7 @@ bool IBoard::_IsAttacked(Piece* piece)
 			break;
 	}
 	//Check up left
-	for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+	for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 	{
 		Piece& tempPiece = m_Board[j][i];
 		if (tempPiece.GetType() == bishopType || tempPiece.GetType() == queenType)
@@ -2612,10 +2618,10 @@ bool IBoard::_IsAttacked(Piece* piece)
 	}
 
 	//Check king
-	int startI = square.x > 0 ? square.x - 1 : square.x;
-	int startJ = square.y > 0 ? square.y - 1 : square.y;
-	int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-	int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+	int startI = square.x > 0 ? (int)square.x - 1 : (int)square.x;
+	int startJ = square.y > 0 ? (int)square.y - 1 : (int)square.y;
+	int endI = square.x < 7 ? (int)square.x + 2 : (int)square.x + 1;
+	int endJ = square.y < 7 ? (int)square.y + 2 : (int)square.y + 1;
 	for (int j = startJ; j < endJ; j++)
 		for (int i = startI; i < endI; i++)
 			if (m_Board[j][i].GetType() == kingType)
@@ -2734,7 +2740,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 		case PieceType::B_BISHOP:
 		{
 			//Check down right
-			for (int i = to.x + 1, j = to.y + 1; i < 8 && j < 8; i++, j++)
+			for (int i = (int)to.x + 1, j = (int)to.y + 1; i < 8 && j < 8; i++, j++)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2749,7 +2755,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check down left
-			for (int i = to.x - 1, j = to.y + 1; i >= 0 && j < 8; i--, j++)
+			for (int i = (int)to.x - 1, j = (int)to.y + 1; i >= 0 && j < 8; i--, j++)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2764,7 +2770,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up right
-			for (int i = to.x + 1, j = to.y - 1; i < 8 && j >= 0; i++, j--)
+			for (int i = (int)to.x + 1, j = (int)to.y - 1; i < 8 && j >= 0; i++, j--)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2779,7 +2785,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up left
-			for (int i = to.x - 1, j = to.y - 1; i >= 0 && j >= 0; i--, j--)
+			for (int i = (int)to.x - 1, j = (int)to.y - 1; i >= 0 && j >= 0; i--, j--)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2799,7 +2805,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 		case PieceType::B_ROOK:
 		{
 			//Check right
-			for (int i = to.x + 1; i < 8; i++)
+			for (int i = (int)to.x + 1; i < 8; i++)
 			{
 				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
@@ -2814,7 +2820,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check left
-			for (int i = to.x - 1; i >= 0; i--)
+			for (int i = (int)to.x - 1; i >= 0; i--)
 			{
 				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
@@ -2829,7 +2835,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check down
-			for (int i = to.y + 1; i < 8; i++)
+			for (int i = (int)to.y + 1; i < 8; i++)
 			{
 				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
@@ -2844,7 +2850,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up
-			for (int i = to.y - 1; i >= 0; i--)
+			for (int i = (int)to.y - 1; i >= 0; i--)
 			{
 				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
@@ -2864,7 +2870,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 		case PieceType::B_QUEEN:
 		{
 			//Check down right
-			for (int i = to.x + 1, j = to.y + 1; i < 8 && j < 8; i++, j++)
+			for (int i = (int)to.x + 1, j = (int)to.y + 1; i < 8 && j < 8; i++, j++)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2879,7 +2885,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check down left
-			for (int i = to.x - 1, j = to.y + 1; i >= 0 && j < 8; i--, j++)
+			for (int i = (int)to.x - 1, j = (int)to.y + 1; i >= 0 && j < 8; i--, j++)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2894,7 +2900,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up right
-			for (int i = to.x + 1, j = to.y - 1; i < 8 && j >= 0; i++, j--)
+			for (int i = (int)to.x + 1, j = (int)to.y - 1; i < 8 && j >= 0; i++, j--)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2909,7 +2915,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up left
-			for (int i = to.x - 1, j = to.y - 1; i >= 0 && j >= 0; i--, j--)
+			for (int i = (int)to.x - 1, j = (int)to.y - 1; i >= 0 && j >= 0; i--, j--)
 			{
 				if (i == from.x && j == from.y) continue;
 				Piece& tempPiece = m_Board[j][i];
@@ -2925,7 +2931,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 			}
 			
 			//Check right
-			for (int i = to.x + 1; i < 8; i++)
+			for (int i = (int)to.x + 1; i < 8; i++)
 			{
 				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
@@ -2940,7 +2946,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check left
-			for (int i = to.x - 1; i >= 0; i--)
+			for (int i = (int)to.x - 1; i >= 0; i--)
 			{
 				if (i == from.x) continue;
 				Piece& tempPiece = m_Board[(int)to.y][i];
@@ -2955,7 +2961,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check down
-			for (int i = to.y + 1; i < 8; i++)
+			for (int i = (int)to.y + 1; i < 8; i++)
 			{
 				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
@@ -2970,7 +2976,7 @@ std::string IBoard::_GetShortNotation(const std::string& move)
 					break;
 			}
 			//Check up
-			for (int i = to.y - 1; i >= 0; i--)
+			for (int i = (int)to.y - 1; i >= 0; i--)
 			{
 				if (i == from.y) continue;
 				Piece& tempPiece = m_Board[i][(int)to.x];
@@ -3026,7 +3032,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 		move.pop_back();
 
 	//Remove capture sign
-	int idx = move.find('x');
+	int idx = (int)move.find('x');
 	if (idx != -1)
 		move.erase(idx, 1);
 
@@ -3098,7 +3104,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'B')
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3107,7 +3113,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3116,7 +3122,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3125,7 +3131,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3137,7 +3143,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'R')
 				{
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 1)
@@ -3146,7 +3152,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 1)
@@ -3155,7 +3161,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 1)
@@ -3164,7 +3170,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 1)
@@ -3176,7 +3182,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'Q')
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3185,7 +3191,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3194,7 +3200,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3203,7 +3209,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 1)
@@ -3213,7 +3219,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					}
 
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 1)
@@ -3222,7 +3228,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 1)
@@ -3231,7 +3237,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 1)
@@ -3240,7 +3246,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 1)
@@ -3252,10 +3258,10 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'K')
 				{
 					//Check surrounding squares
-					int startI = square.x > 0 ? square.x - 1 : square.x;
-					int startJ = square.y > 0 ? square.y - 1 : square.y;
-					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					int startI = square.x > 0 ? (int)square.x - 1 : (int)square.x;
+					int startJ = square.y > 0 ? (int)square.y - 1 : (int)square.y;
+					int endI = square.x < 7 ? (int)square.x + 2 : (int)square.x + 1;
+					int endJ = square.y < 7 ? (int)square.y + 2 : (int)square.y + 1;
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetType() == PieceType::W_KING)
@@ -3279,7 +3285,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'B')
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3288,7 +3294,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3297,7 +3303,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3306,7 +3312,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3318,7 +3324,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'R')
 				{
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 0)
@@ -3327,7 +3333,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 0)
@@ -3336,7 +3342,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 0)
@@ -3345,7 +3351,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 0)
@@ -3357,7 +3363,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'Q')
 				{
 					//Check down right
-					for (int i = square.x + 1, j = square.y + 1; i < 8 && j < 8; i++, j++)
+					for (int i = (int)square.x + 1, j = (int)square.y + 1; i < 8 && j < 8; i++, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3366,7 +3372,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check down left
-					for (int i = square.x - 1, j = square.y + 1; i >= 0 && j < 8; i--, j++)
+					for (int i = (int)square.x - 1, j = (int)square.y + 1; i >= 0 && j < 8; i--, j++)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3375,7 +3381,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up right
-					for (int i = square.x + 1, j = square.y - 1; i < 8 && j >= 0; i++, j--)
+					for (int i = (int)square.x + 1, j = (int)square.y - 1; i < 8 && j >= 0; i++, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3384,7 +3390,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, (float)j }) + move.substr(1, 2);
 					}
 					//Check up left
-					for (int i = square.x - 1, j = square.y - 1; i >= 0 && j >= 0; i--, j--)
+					for (int i = (int)square.x - 1, j = (int)square.y - 1; i >= 0 && j >= 0; i--, j--)
 					{
 						Piece& tempPiece = m_Board[j][i];
 						if (tempPiece.GetSide() == 0)
@@ -3394,7 +3400,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					}
 
 					//Check right
-					for (int i = square.x + 1; i < 8; i++)
+					for (int i = (int)square.x + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 0)
@@ -3403,7 +3409,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check left
-					for (int i = square.x - 1; i >= 0; i--)
+					for (int i = (int)square.x - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[(int)square.y][i];
 						if (tempPiece.GetSide() == 0)
@@ -3412,7 +3418,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 					}
 					//Check down
-					for (int i = square.y + 1; i < 8; i++)
+					for (int i = (int)square.y + 1; i < 8; i++)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 0)
@@ -3421,7 +3427,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 							return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 					}
 					//Check up
-					for (int i = square.y - 1; i >= 0; i--)
+					for (int i = (int)square.y - 1; i >= 0; i--)
 					{
 						Piece& tempPiece = m_Board[i][(int)square.x];
 						if (tempPiece.GetSide() == 0)
@@ -3433,10 +3439,10 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				else if (move[0] == 'K')
 				{
 					//Check surrounding squares
-					int startI = square.x > 0 ? square.x - 1 : square.x;
-					int startJ = square.y > 0 ? square.y - 1 : square.y;
-					int endI = square.x < 7 ? square.x + 2 : square.x + 1;
-					int endJ = square.y < 7 ? square.y + 2 : square.y + 1;
+					int startI = square.x > 0 ? (int)square.x - 1 : (int)square.x;
+					int startJ = square.y > 0 ? (int)square.y - 1 : (int)square.y;
+					int endI = square.x < 7 ? (int)square.x + 2 : (int)square.x + 1;
+					int endJ = square.y < 7 ? (int)square.y + 2 : (int)square.y + 1;
 					for (int j = startJ; j < endJ; j++)
 						for (int i = startI; i < endI; i++)
 							if (m_Board[j][i].GetType() == PieceType::B_KING)
@@ -3470,25 +3476,25 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					if (std::abs(move[2] - move[1]) == 1)
 					{
 						if (square.x >= 2 && m_Board[(int)square.y][(int)square.x - 2].GetType() == PieceType::W_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 2 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x - 2 }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 2 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x + 2 }) + move.substr(1, 2);
 					}
 					else
 					{
 						if (square.x >= 1 && m_Board[(int)square.y][(int)square.x - 1].GetType() == PieceType::W_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 1 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x - 1 }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 1 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x + 1 }) + move.substr(1, 2);
 					}
 				}
 				else if (move[0] == 'B')
 				{
 					int diff = std::abs(move[2] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
 					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 				}
 				else if (move[0] == 'R')
 				{
@@ -3501,7 +3507,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					else
 					{
 						//Check down
-						for (int i = square.y + 1; i < 8; i++)
+						for (int i = (int)square.y + 1; i < 8; i++)
 						{
 							Piece& tempPiece = m_Board[i][(int)square.x];
 							if (tempPiece.GetSide() == 1)
@@ -3510,7 +3516,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 						}
 						//Check up
-						for (int i = square.y - 1; i >= 0; i--)
+						for (int i = (int)square.y - 1; i >= 0; i--)
 						{
 							Piece& tempPiece = m_Board[i][(int)square.x];
 							if (tempPiece.GetSide() == 1)
@@ -3524,9 +3530,9 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				{
 					int diff = std::abs(move[2] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 					else
 					{
 						move = move.substr(1, 3);
@@ -3538,7 +3544,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 						else
 						{
 							//Check down
-							for (int i = square.y + 1; i < 8; i++)
+							for (int i = (int)square.y + 1; i < 8; i++)
 							{
 								Piece& tempPiece = m_Board[i][(int)square.x];
 								if (tempPiece.GetSide() == 1)
@@ -3547,7 +3553,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 							}
 							//Check up
-							for (int i = square.y - 1; i >= 0; i--)
+							for (int i = (int)square.y - 1; i >= 0; i--)
 							{
 								Piece& tempPiece = m_Board[i][(int)square.x];
 								if (tempPiece.GetSide() == 1)
@@ -3567,25 +3573,25 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					if (std::abs(move[3] - move[1]) == 1)
 					{
 						if (square.y >= 2 && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::W_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y - 2, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y - 2, square.x }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y + 2, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y + 2, square.x }) + move.substr(1, 2);
 					}
 					else
 					{
 						if (square.y >= 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::W_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y - 1, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y - 1, square.x }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y + 1, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y + 1, square.x }) + move.substr(1, 2);
 					}
 				}
 				else if (move[0] == 'B')
 				{
 					int diff = std::abs(move[3] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_BISHOP)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 				}
 				else if (move[0] == 'R')
 				{
@@ -3598,7 +3604,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					else
 					{
 						//Check right
-						for (int i = square.x + 1; i < 8; i++)
+						for (int i = (int)square.x + 1; i < 8; i++)
 						{
 							Piece& tempPiece = m_Board[(int)square.y][i];
 							if (tempPiece.GetSide() == 1)
@@ -3607,7 +3613,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 						}
 						//Check left
-						for (int i = square.x - 1; i >= 0; i--)
+						for (int i = (int)square.x - 1; i >= 0; i--)
 						{
 							Piece& tempPiece = m_Board[(int)square.y][i];
 							if (tempPiece.GetSide() == 1)
@@ -3621,9 +3627,9 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				{
 					int diff = std::abs(move[3] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::W_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::W_QUEEN)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 					else
 					{
 						move = move.substr(1, 3);
@@ -3635,7 +3641,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 						else
 						{
 							//Check right
-							for (int i = square.x + 1; i < 8; i++)
+							for (int i = (int)square.x + 1; i < 8; i++)
 							{
 								Piece& tempPiece = m_Board[(int)square.y][i];
 								if (tempPiece.GetSide() == 1)
@@ -3644,7 +3650,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 							}
 							//Check left
-							for (int i = square.x - 1; i >= 0; i--)
+							for (int i = (int)square.x - 1; i >= 0; i--)
 							{
 								Piece& tempPiece = m_Board[(int)square.y][i];
 								if (tempPiece.GetSide() == 1)
@@ -3668,25 +3674,25 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					if (std::abs(move[2] - move[1]) == 1)
 					{
 						if (square.x >= 2 && m_Board[(int)square.y][(int)square.x - 2].GetType() == PieceType::B_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 2 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x - 2 }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 2 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x + 2 }) + move.substr(1, 2);
 					}
 					else
 					{
 						if (square.x >= 1 && m_Board[(int)square.y][(int)square.x - 1].GetType() == PieceType::B_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x - 1 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x - 1 }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y, (float)square.x + 1 }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y, square.x + 1 }) + move.substr(1, 2);
 					}
 				}
 				else if (move[0] == 'B')
 				{
 					int diff = std::abs(move[2] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 				}
 				else if (move[0] == 'R')
 				{
@@ -3699,7 +3705,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					else
 					{
 						//Check down
-						for (int i = square.y + 1; i < 8; i++)
+						for (int i = (int)square.y + 1; i < 8; i++)
 						{
 							Piece& tempPiece = m_Board[i][(int)square.x];
 							if (tempPiece.GetSide() == 1)
@@ -3708,7 +3714,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 								return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 						}
 						//Check up
-						for (int i = square.y - 1; i >= 0; i--)
+						for (int i = (int)square.y - 1; i >= 0; i--)
 						{
 							Piece& tempPiece = m_Board[i][(int)square.x];
 							if (tempPiece.GetSide() == 1)
@@ -3722,9 +3728,9 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				{
 					int diff = std::abs(move[2] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 					else
 					{
 						move = move.substr(1, 3);
@@ -3736,7 +3742,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 						else
 						{
 							//Check down
-							for (int i = square.y + 1; i < 8; i++)
+							for (int i = (int)square.y + 1; i < 8; i++)
 							{
 								Piece& tempPiece = m_Board[i][(int)square.x];
 								if (tempPiece.GetSide() == 1)
@@ -3745,7 +3751,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 									return _ToChessNote(Vector2{ square.x, (float)i }) + move.substr(1, 2);
 							}
 							//Check up
-							for (int i = square.y - 1; i >= 0; i--)
+							for (int i = (int)square.y - 1; i >= 0; i--)
 							{
 								Piece& tempPiece = m_Board[i][(int)square.x];
 								if (tempPiece.GetSide() == 1)
@@ -3765,25 +3771,25 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					if (std::abs(move[3] - move[1]) == 1)
 					{
 						if (square.y >= 2 && m_Board[(int)square.y - 2][(int)square.x].GetType() == PieceType::B_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y - 2, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y - 2, square.x }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y + 2, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y + 2, square.x }) + move.substr(1, 2);
 					}
 					else
 					{
 						if (square.y >= 1 && m_Board[(int)square.y - 1][(int)square.x].GetType() == PieceType::B_KNIGHT)
-							return _ToChessNote(Vector2{ (float)square.y - 1, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y - 1, square.x }) + move.substr(1, 2);
 						else
-							return _ToChessNote(Vector2{ (float)square.y + 1, (float)square.x }) + move.substr(1, 2);
+							return _ToChessNote(Vector2{ square.y + 1, square.x }) + move.substr(1, 2);
 					}
 				}
 				else if (move[0] == 'B')
 				{
 					int diff = std::abs(move[3] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_BISHOP)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 				}
 				else if (move[0] == 'R')
 				{
@@ -3796,7 +3802,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 					else
 					{
 						//Check right
-						for (int i = square.x + 1; i < 8; i++)
+						for (int i = (int)square.x + 1; i < 8; i++)
 						{
 							Piece& tempPiece = m_Board[(int)square.y][i];
 							if (tempPiece.GetSide() == 1)
@@ -3805,7 +3811,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 								return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 						}
 						//Check left
-						for (int i = square.x - 1; i >= 0; i--)
+						for (int i = (int)square.x - 1; i >= 0; i--)
 						{
 							Piece& tempPiece = m_Board[(int)square.y][i];
 							if (tempPiece.GetSide() == 1)
@@ -3819,9 +3825,9 @@ std::string IBoard::_GetLongNotation(std::string& move)
 				{
 					int diff = std::abs(move[3] - move[1]);
 					if (square.x >= diff && square.y >= diff && m_Board[(int)square.y - diff][(int)square.x - diff].GetType() == PieceType::B_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y - diff, (float)square.x - diff }) + move.substr(1, 2);
-					else if (square.x + diff < 8 && square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
-						return _ToChessNote(Vector2{ (float)square.y + diff, (float)square.x + diff }) + move.substr(1, 2);
+						return _ToChessNote(Vector2{ square.y - diff, square.x - diff }) + move.substr(1, 2);
+					else if ((int)square.x + diff < 8 && (int)square.y + diff < 8 && m_Board[(int)square.y + diff][(int)square.x + diff].GetType() == PieceType::B_QUEEN)
+						return _ToChessNote(Vector2{ square.y + diff, square.x + diff }) + move.substr(1, 2);
 					else
 					{
 						move = move.substr(1, 3);
@@ -3833,7 +3839,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 						else
 						{
 							//Check right
-							for (int i = square.x + 1; i < 8; i++)
+							for (int i = (int)square.x + 1; i < 8; i++)
 							{
 								Piece& tempPiece = m_Board[(int)square.y][i];
 								if (tempPiece.GetSide() == 1)
@@ -3842,7 +3848,7 @@ std::string IBoard::_GetLongNotation(std::string& move)
 									return _ToChessNote(Vector2{ (float)i, square.y }) + move.substr(1, 2);
 							}
 							//Check left
-							for (int i = square.x - 1; i >= 0; i--)
+							for (int i = (int)square.x - 1; i >= 0; i--)
 							{
 								Piece& tempPiece = m_Board[(int)square.y][i];
 								if (tempPiece.GetSide() == 1)
@@ -3899,7 +3905,7 @@ Vector2 IBoard::_ToRealSquare(const std::string& move) const
 
 Vector2 IBoard::_GetSquare(const Vector2& position) const
 {
-	Vector2 square{ Clamp((int)((position.x - m_BoardBounds.x) / m_SquareSize), 0, 7), Clamp((int)((position.y - m_BoardBounds.y) / m_SquareSize), 0, 7) };
+	Vector2 square{ Clamp(std::floor((position.x - m_BoardBounds.x) / (float)m_SquareSize), 0, 7), Clamp(std::floor((position.y - m_BoardBounds.y) / (float)m_SquareSize), 0.0f, 7.0f) };
 	if (m_Flipped)
 	{
 		square.x = 7 - square.x;
@@ -3910,7 +3916,7 @@ Vector2 IBoard::_GetSquare(const Vector2& position) const
 
 Vector2 IBoard::_GetRealSquare(const Vector2& position) const
 {
-	return Vector2{ Clamp((int)((position.x - m_BoardBounds.x) / m_SquareSize), 0, 7), Clamp((int)((position.y - m_BoardBounds.y) / m_SquareSize), 0, 7) };
+	return Vector2{ Clamp(std::floor((position.x - m_BoardBounds.x) / (float)m_SquareSize), 0, 7), Clamp(std::floor((position.y - m_BoardBounds.y) / (float)m_SquareSize), 0.0f, 7.0f) };
 }
 
 std::string IBoard::_MovesToString() const

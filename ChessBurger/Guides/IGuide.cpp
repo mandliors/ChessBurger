@@ -18,6 +18,11 @@ void IGuide::SetPosition(const Vector2& position)
 	m_Position = position;
 }
 
+void IGuide::SetColor(const Color& color)
+{
+	m_Color = color;
+}
+
 void IGuide::SetFlip(bool flip)
 {
 	m_Flip = flip;

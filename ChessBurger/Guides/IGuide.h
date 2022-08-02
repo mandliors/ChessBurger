@@ -16,6 +16,7 @@ public:
 
 	Vector2 GetSquare() const;
 	void SetPosition(const Vector2& position);
+	void SetColor(const Color& color);
 	void SetFlip(bool flip);
 	const bool operator==(const IGuide& other) const;
 

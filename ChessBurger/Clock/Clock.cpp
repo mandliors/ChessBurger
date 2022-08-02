@@ -51,8 +51,8 @@ double Clock::GetSecondsLeft() const
 std::string Clock::GetString() const
 {
 	double secs = m_MaxSeconds - m_ElapsedSeconds;
-	uint32_t minutes = std::floor(secs / 60.0);
-	uint32_t seconds = std::round(secs - minutes * 60);
+	int minutes = (int)std::floor(secs / 60.0);
+	int seconds = (int)std::round(secs - minutes * 60);
 
 	std::string result = "";
 	result += std::to_string(minutes);

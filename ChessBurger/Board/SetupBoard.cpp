@@ -258,7 +258,7 @@ void SetupBoard::_UpdateBounds()
 {
 	float boardSize = (GetScreenHeight() - 2 * DISTANCE_BL) * 0.8f;
 	float totalWidth = boardSize + DISTANCE_BS + boardSize * SIDEPANEL_WIDTH_P;
-	float actualBoardSize = (int)(boardSize / 8.0f) * 8;
+	float actualBoardSize = std::floor(boardSize / 8.0f) * 8.0f;
 	float setupHeight = boardSize / 8.0f;
 	//Match height
 	if (totalWidth < GetScreenWidth())
@@ -276,7 +276,7 @@ void SetupBoard::_UpdateBounds()
 	else
 	{
 		boardSize = (GetScreenWidth() - DISTANCE_BS) / (1.0f + SIDEPANEL_WIDTH_P);
-		actualBoardSize = (int)(boardSize / 8.0f) * 8;
+		actualBoardSize = std::floor(boardSize / 8.0f) * 8.0f;
 		setupHeight = boardSize / 8.0f;
 		float offset = (GetScreenHeight() - boardSize - 2 * DISTANCE_BL - 2 * setupHeight) * 0.5f;
 		m_BoardBounds = Rectangle{ 0, offset + setupHeight + DISTANCE_BL, boardSize, boardSize };
@@ -287,7 +287,7 @@ void SetupBoard::_UpdateBounds()
 		m_SetupPiecesHeight = setupHeight;
 		m_UIWidth = m_SidePanelBounds.width - 2 * UI_OFFSET;
 	}
-	m_SquareSize = boardSize / 8;
+	m_SquareSize = (int)std::floor(boardSize / 8.0f);
 
 
 	//Update guides
@@ -299,14 +299,14 @@ void SetupBoard::_UpdateBounds()
 	for (int i = 0; i < m_SelectedMoves.size(); i++)
 		m_SelectedMoves[i].UpdatePosition(m_BoardBounds, m_SquareSize);
 
-	//Update special highlights
+	//Update special highlightsS
 	m_SelectionFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
 	m_LastMoveFrom.UpdatePosition(m_BoardBounds, m_SquareSize);
 	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
 
 	//Update pieces
-	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
-	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
+	Piece::Size = (int)std::roundf(PIECE_SIZE_P * (float)m_SquareSize);
+	float offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -423,8 +423,8 @@ void SetupBoard::SetupPieces_Draw() const
 	//Draw delete background
 	if (m_Delete)
 	{
-		DrawRectangle(m_BoardBounds.x + m_SetupPiecesWidth - width, m_SetupBlackPiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
-		DrawRectangle(m_BoardBounds.x + m_SetupPiecesWidth - width, m_SetupWhitePiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
+		DrawRectangleV(Vector2{ m_BoardBounds.x + m_SetupPiecesWidth - width, m_SetupBlackPiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
+		DrawRectangleV(Vector2{ m_BoardBounds.x + m_SetupPiecesWidth - width, m_SetupWhitePiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 	}
 	//Draw selected piece background
 	else if ((int)m_SelectedPieceType > -1)
@@ -433,25 +433,22 @@ void SetupBoard::SetupPieces_Draw() const
 		if ((int)m_SelectedPieceType < 6)
 		{
 			if (!m_Flipped)
-				DrawRectangle(m_BoardBounds.x + ((int)m_SelectedPieceType + 1) * width, m_SetupWhitePiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
+				DrawRectangleV(Vector2{ m_BoardBounds.x + ((int)m_SelectedPieceType + 1) * width, m_SetupWhitePiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 			else
-				DrawRectangle(m_BoardBounds.x + ((int)m_SelectedPieceType + 1) * width, m_SetupBlackPiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
+				DrawRectangleV(Vector2{ m_BoardBounds.x + ((int)m_SelectedPieceType + 1) * width, m_SetupBlackPiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 		}
 		//Black piece
 		else
 		{
 			if (!m_Flipped)
-				DrawRectangle(m_BoardBounds.x + ((int)m_SelectedPieceType - 5) * width, m_SetupBlackPiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
+				DrawRectangleV(Vector2{ m_BoardBounds.x + ((int)m_SelectedPieceType - 5) * width, m_SetupBlackPiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 			else
-				DrawRectangle(m_BoardBounds.x + ((int)m_SelectedPieceType - 5) * width, m_SetupWhitePiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
+				DrawRectangleV(Vector2{ m_BoardBounds.x + ((int)m_SelectedPieceType - 5) * width, m_SetupWhitePiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 		}
 	}
 	//Draw pointer background
 	else
-	{
-		DrawRectangle(m_BoardBounds.x, m_SetupBlackPiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
-		DrawRectangle(m_BoardBounds.x, m_SetupWhitePiecesY, width, m_SetupPiecesHeight, Fade(PURPLE, 0.4f));
-	}
+		DrawRectangleV(Vector2{ m_BoardBounds.x, m_SetupBlackPiecesY }, Vector2{ width, m_SetupPiecesHeight }, Fade(PURPLE, 0.4f));
 
 	//Draw setup pieces
 	for (int i = 0; i < 6; i++)
@@ -461,10 +458,10 @@ void SetupBoard::SetupPieces_Draw() const
 	}
 
 	//Draw pointer and dustbin
-	DrawCircle(m_BoardBounds.x + width * 0.5f, m_SetupWhitePiecesY + m_SetupPiecesHeight * 0.5f, width * 0.3f, GREEN);
-	DrawCircle(m_BoardBounds.x + width * 0.5f, m_SetupBlackPiecesY + m_SetupPiecesHeight * 0.5f, width * 0.3f, GREEN);
-	DrawCircle(m_BoardBounds.x + m_BoardBounds.width - width * 0.5f, m_SetupWhitePiecesY + m_SetupPiecesHeight * 0.5f, width * 0.3f, ORANGE);
-	DrawCircle(m_BoardBounds.x + m_BoardBounds.width - width * 0.5f, m_SetupBlackPiecesY + m_SetupPiecesHeight * 0.5f, width * 0.3f, ORANGE);
+	DrawCircleV(Vector2{ m_BoardBounds.x + width * 0.5f, m_SetupWhitePiecesY + m_SetupPiecesHeight * 0.5f }, width * 0.3f, GREEN);
+	DrawCircleV(Vector2{ m_BoardBounds.x + width * 0.5f, m_SetupBlackPiecesY + m_SetupPiecesHeight * 0.5f }, width * 0.3f, GREEN);
+	DrawCircleV(Vector2{ m_BoardBounds.x + m_BoardBounds.width - width * 0.5f, m_SetupWhitePiecesY + m_SetupPiecesHeight * 0.5f }, width * 0.3f, ORANGE);
+	DrawCircleV(Vector2{ m_BoardBounds.x + m_BoardBounds.width - width * 0.5f, m_SetupBlackPiecesY + m_SetupPiecesHeight * 0.5f }, width * 0.3f, ORANGE);
 
 	//Draw dragged piece
 	if (m_DragSetupPiece && m_SelectedPieceType != PieceType::NONE)

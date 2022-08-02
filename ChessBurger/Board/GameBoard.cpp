@@ -71,7 +71,7 @@ void GameBoard::Draw() const
 	//Draw timers
 	DrawRectangleRounded(m_WhiteClockBounds, 0.2f, 4, GameData::Colors.BgFocused);
 	std::string clockString = m_WhiteClock.GetString();
-	int width = MeasureTextEx(GameData::MainFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
+	float width = MeasureTextEx(GameData::MainFont, clockString.c_str(), CLOCK_TEXT_SIZE_A, 0).x;
 	DrawTextEx(GameData::MainFont, clockString.c_str(), Vector2{ m_WhiteClockBounds.x + m_WhiteClockBounds.width - width - 10, m_WhiteClockBounds.y + (m_WhiteClockBounds.height - CLOCK_TEXT_SIZE_A) * 0.5f }, CLOCK_TEXT_SIZE_A, 0, GameData::Colors.BgFocused2);
 	
 	DrawRectangleRounded(m_BlackClockBounds, 0.2f, 4, GameData::Colors.BgFocused2);
@@ -99,7 +99,7 @@ bool GameBoard::_Move(const std::string& move, bool animated, bool updateEngineP
 {
 	if (IBoard::_Move(move, animated, updateEnginePosition))
 	{
-		GameData::CurrentEngine->SearchMove(m_WhiteClock.GetSecondsLeft() * 1000, m_BlackClock.GetSecondsLeft() * 1000, 0, 0);
+		GameData::CurrentEngine->SearchMove((int)m_WhiteClock.GetSecondsLeft() * 1000, (int)m_BlackClock.GetSecondsLeft() * 1000, 0, 0);
 		return true;
 	}
 	else return false;

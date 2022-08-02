@@ -2,6 +2,8 @@
 
 #include "IBoard.h"
 #include "UI/UIText.h"
+#include "Analysis/AnalyzedGame.h"
+#include "Analysis/AnalyzedMove.h"
 
 //Positional definitions
 #define MOVELIST_WIDTH_P 0.6f
@@ -71,8 +73,7 @@ private:
 private:
 	Arrow m_BestMoveArrow;
 	uint32_t m_FrameCounter;
-	AnalysisState m_AnalysisState;
-	bool m_Analyzing;
+	bool m_EngineWorking;
 
 	//EvalBar
 	Rectangle m_EvalBar_Bounds;
@@ -90,4 +91,10 @@ private:
 	//BestLines
 	Rectangle m_BestLines_Bounds;
 	std::vector<std::vector<UIText>> m_BestLines_UITexts;
+
+	//Analysis
+	AnalysisState m_AnalysisState;
+	AnalyzedGame m_AnalyzedGame;
+	AnalyzedMove m_AnalysisBestMove;
+	int m_AnalysisMoveIndex;
 };

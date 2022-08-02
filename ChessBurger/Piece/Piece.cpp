@@ -34,8 +34,8 @@ void Piece::Update()
 		//Still animating
 		if (currentTime - m_StartTime < PIECE_ANIMATION_SECONDS)
 		{
-			m_Position.x = EaseLinearIn(currentTime - m_StartTime, m_PreviousPosition.x, m_NextPosition.x - m_PreviousPosition.x, PIECE_ANIMATION_SECONDS);
-			m_Position.y = EaseLinearIn(currentTime - m_StartTime, m_PreviousPosition.y, m_NextPosition.y - m_PreviousPosition.y, PIECE_ANIMATION_SECONDS);
+			m_Position.x = EaseLinearIn((float)(currentTime - m_StartTime), m_PreviousPosition.x, m_NextPosition.x - m_PreviousPosition.x, PIECE_ANIMATION_SECONDS);
+			m_Position.y = EaseLinearIn((float)(currentTime - m_StartTime), m_PreviousPosition.y, m_NextPosition.y - m_PreviousPosition.y, PIECE_ANIMATION_SECONDS);
 		}
 		//Animation ends
 		else
@@ -144,6 +144,6 @@ void Piece::TellBoardBounds(const Rectangle& boardBounds)
 
 bool Piece::OverlapPoint(const Vector2& point) const
 {
-	Rectangle bounds{ m_Position.x, m_Position.y, Size, Size };
+	Rectangle bounds{ m_Position.x, m_Position.y, (float)Size, (float)Size };
 	return CheckCollisionPointRec(point, bounds);
 }

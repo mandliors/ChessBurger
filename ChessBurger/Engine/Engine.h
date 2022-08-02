@@ -38,7 +38,7 @@ public:
 	void SetAnalyseMode(bool value);
 	void SetMode(Mode mode);
 	void GoInfinite();
-	void SearchMove(uint32_t wtime, uint32_t btime, uint32_t winc, uint32_t binc);
+	void SearchMove(int wtime, int btime, int winc, int binc);
 	void SendCommand(const std::string& command);
 	void Stop();
 	

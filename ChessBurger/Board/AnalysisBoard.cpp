@@ -5,7 +5,7 @@
 #include "extras/easings.h"
 
 AnalysisBoard::AnalysisBoard(const Rectangle& bounds, Game* owner)
-	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_AnalysisState(AnalysisState::NONE), m_Analyzing(true), m_EvalBar_Bounds({}), m_StartTime(0.0), m_PreviousHeight(0.0f), m_Height(0.0f), m_NextHeight(0.0f), m_Movelist_Bounds({}), m_MovelistContent_Bounds({}), m_Movelist_Scroll({}), m_UpdateScrollbar(false), m_BestLines_Bounds({}), m_BestLines_UITexts({})
+	: IBoard(bounds, owner), m_BestMoveArrow({}), m_FrameCounter(0), m_EngineWorking(true), m_EvalBar_Bounds({}), m_StartTime(0.0), m_PreviousHeight(0.0f), m_Height(0.0f), m_NextHeight(0.0f), m_Movelist_Bounds({}), m_MovelistContent_Bounds({}), m_Movelist_Scroll({}), m_UpdateScrollbar(false), m_BestLines_Bounds({}), m_BestLines_UITexts({}), m_AnalysisState(AnalysisState::NONE), m_AnalyzedGame({}), m_AnalysisBestMove({}), m_AnalysisMoveIndex(-1)
 {
 	m_AnalyseMode = true;
 	m_ShowNametag = false;
@@ -58,14 +58,34 @@ void AnalysisBoard::Update()
 		if (!LoadFEN(text))
 			//Paste PGN
 			if (!LoadPGN(text))
-				std::invalid_argument("Incorrect FEN or PGN");
+				__debugbreak(); //Invalid FEN or PGN
 	}
 
 	//Start analysis with engine
-	if (IsKeyDown(KEY_LEFT_CONTROL) && IsKeyReleased(KEY_A))
+	if (m_AnalysisState == AnalysisState::NONE && IsKeyDown(KEY_LEFT_CONTROL) && IsKeyReleased(KEY_A))
 	{
-		m_AnalysisState = AnalysisState::IN_PROGRESS;
 		ClearWindowState(FLAG_WINDOW_RESIZABLE);
+		if (!m_EngineWorking)
+		{
+			GameData::CurrentEngine->SetMode(Engine::Mode::ANALYZE);
+			GameData::CurrentEngine->ResizeAnalysisData();
+		}
+		m_AnalysisState = AnalysisState::IN_PROGRESS;
+		m_AnalyzedGame = AnalyzedGame((int)m_Moves.size());
+		m_AnalysisMoveIndex = -1;
+		m_MoveIndex = -1;
+		_ReloadBoard(false, false);
+		GameData::CurrentEngine->SetPosition(STARTPOS_FEN);
+		if (!m_EngineWorking)
+			GameData::CurrentEngine->GoInfinite();
+	}
+
+	//Update the last move highlights' colors, if the moves are analyzed
+	if (m_AnalysisState == AnalysisState::DONE && m_MoveIndex > -1)
+	{
+		Color color = Fade(MoveColors[(int)m_AnalyzedGame.GetMove(m_MoveIndex).second.Type], 0.6f);
+		m_LastMoveFrom.SetColor(color);
+		m_LastMoveTo.SetColor(color);
 	}
 
 	//Update UI elements
@@ -74,23 +94,39 @@ void AnalysisBoard::Update()
 	BestLines_Update();
 }
 
+
 void AnalysisBoard::Draw() const
 {
+	//Draw the analysis panel
 	if (m_AnalysisState == AnalysisState::IN_PROGRESS)
 	{
+		static int dotCount = 1;
 		ClearBackground(GameData::Colors.Background);
-		int x = GetScreenWidth() * 0.5f - 500;
-		int y = GetScreenHeight() * 0.5f - 150;
-		DrawRectangle(x, y, 1000, 300, GameData::Colors.BgFocused);
-		DrawRectangle(x + 10.0f, y + 10.0f, 980, 280, GameData::Colors.FgFocused);
-		DrawTextEx(GameData::MainFont, "Analyzing the game, please wait...", Vector2{ (float)x + 80.0f, (float)y + 25.0f }, 70, 0.0f, GameData::Colors.FgNormal);
+		float x = GetScreenWidth() * 0.5f - 500;
+		float y = GetScreenHeight() * 0.5f - 150;
+		DrawRectangleV(Vector2{ x, y }, Vector2{ 1000.0f, 300.0f }, GameData::Colors.BgFocused);
+		DrawRectangleV(Vector2{ x + 10.0f, y + 10.0f }, Vector2{ 980.0f, 280.0f }, GameData::Colors.FgFocused);
+		
+		if (std::floor(GetTime() - GetFrameTime()) < std::floor(GetTime()))
+			dotCount = dotCount % 3 + 1;
+		
+		if (dotCount == 1)
+			DrawTextEx(GameData::MainFont, "Analyzing the game, please wait.", Vector2{ x + 80.0f, y + 25.0f }, 70, 0.0f, GameData::Colors.FgNormal);
+		else if (dotCount == 2)
+			DrawTextEx(GameData::MainFont, "Analyzing the game, please wait..", Vector2{ x + 80.0f, y + 25.0f }, 70, 0.0f, GameData::Colors.FgNormal);
+		else if (dotCount == 3)
+			DrawTextEx(GameData::MainFont, "Analyzing the game, please wait...", Vector2{ x + 80.0f, y + 25.0f }, 70, 0.0f, GameData::Colors.FgNormal);
+
+		GuiProgressBar(Rectangle{ x + 80.0f, y + 190.0f, 840.0f, 60.0f }, "", "", m_AnalysisMoveIndex + (float)GameData::CurrentEngine->GetAnalysisData().Depth / (float)GameData::AnalysisDepth, 0.0f, (float)m_Moves.size());
+
 		return;
 	}
 
 	IBoard::Draw();
 
 	//Draw best move arrow
-	m_BestMoveArrow.Draw(m_BoardBounds);
+	if (m_EngineWorking)
+		m_BestMoveArrow.Draw(m_BoardBounds);
 
 	//Draw UI elements
 	std::lock_guard<std::mutex> lock(GameData::EngineMutex);
@@ -110,7 +146,7 @@ void AnalysisBoard::_UpdateBounds()
 		float offset = (GetScreenWidth() - totalWidth) * 0.5f;
 		m_EvalBar_Bounds = Rectangle{ offset, NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH, boardSize };
 		m_BoardBounds = Rectangle{ m_EvalBar_Bounds.x + EVALBAR_WIDTH + DISTANCE_EB, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 3.0f * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + (2 * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING) * m_Analyzing };
+		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 3.0f * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + (2 * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING) * m_EngineWorking };
 		m_Movelist_Bounds = Rectangle{ m_BestLines_Bounds.x, m_BestLines_Bounds.y + m_BestLines_Bounds.height, m_BestLines_Bounds.width, boardSize - m_BestLines_Bounds.height };
 		m_MovelistContent_Bounds = m_Movelist_Bounds;
 	}
@@ -121,12 +157,12 @@ void AnalysisBoard::_UpdateBounds()
 		float offset = (GetScreenHeight() - boardSize - 2 * NAMETAG_HEIGHT_A * (float)m_ShowNametag) * 0.5f;
 		m_EvalBar_Bounds = Rectangle{ 0, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, EVALBAR_WIDTH, boardSize };
 		m_BoardBounds = Rectangle{ EVALBAR_WIDTH + DISTANCE_EB, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize, boardSize };
-		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 3.0f * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + (2 * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING) * m_Analyzing };
+		m_BestLines_Bounds = Rectangle{ m_BoardBounds.x + boardSize + DISTANCE_BM, offset + NAMETAG_HEIGHT_A * (float)m_ShowNametag, boardSize * MOVELIST_WIDTH_P, 3.0f * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + (2 * BESTLINES_PADDING + GameData::EngineLines * (BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * (1 + 2 * UITEXT_PADDING_P) + BESTLINES_SPACING) - BESTLINES_SPACING) * m_EngineWorking };
 		m_Movelist_Bounds = Rectangle{ m_BestLines_Bounds.x, m_BestLines_Bounds.y + m_BestLines_Bounds.height, m_BestLines_Bounds.width, boardSize - m_BestLines_Bounds.height };
 		m_MovelistContent_Bounds = m_Movelist_Bounds;
 	}
-	m_SquareSize = boardSize / 8.0f;
-	GuiSetStyle(LISTVIEW, SCROLLBAR_WIDTH, m_Movelist_Bounds.width * 0.04f);
+	m_SquareSize = (int)std::floor(boardSize / 8.0f);
+	GuiSetStyle(LISTVIEW, SCROLLBAR_WIDTH, (int)std::roundf(m_Movelist_Bounds.width * 0.04f));
 
 	//Update guides
 	IGuide::Size = m_SquareSize;
@@ -143,8 +179,8 @@ void AnalysisBoard::_UpdateBounds()
 	m_LastMoveTo.UpdatePosition(m_BoardBounds, m_SquareSize);
 
 	//Update pieces
-	Piece::Size = PIECE_SIZE_P * (float)m_SquareSize;
-	int offset = (1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f;
+	Piece::Size = (int)std::roundf(PIECE_SIZE_P * (float)m_SquareSize);
+	float offset = std::roundf((1.0f - PIECE_SIZE_P) * (float)m_SquareSize * 0.5f);
 	for (int i = 0; i < 8; i++)
 	{
 		for (int j = 0; j < 8; j++)
@@ -155,7 +191,7 @@ void AnalysisBoard::_UpdateBounds()
 	}
 
 	//Update EvalBar
-	if (m_Analyzing && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
+	if (m_EngineWorking && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
 	{
 		std::string eval = GameData::CurrentEngine->GetAnalysisData().Evaluations[0];
 		if (eval.find("M") != -1)
@@ -177,7 +213,7 @@ void AnalysisBoard::Reset(bool resetEnginePosition)
 {
 	IBoard::Reset(resetEnginePosition);
 	m_BestLines_UITexts.clear();
-	m_Analyzing = true;
+	m_EngineWorking = true;
 }
 
 bool AnalysisBoard::_Move(const std::string& move, bool animated, bool updateEnginePosition)
@@ -204,8 +240,8 @@ bool AnalysisBoard::_GuiSwitch(const Rectangle& bounds, bool value, bool draw) c
 		DrawRectangleRounded(Rectangle{ bounds.x + 2 + width, bounds.y + SWITCH_BORDER_WIDTH, width, bounds.height - 2 * SWITCH_BORDER_WIDTH }, SWITCH_ROUNDNESS, 10, GameData::Colors.BgNormal);
 		float x = bounds.x + width * 1.5f + 2.5f;
 		float y = bounds.y + bounds.height * 0.5f + 0.5f;
-		DrawCircle(x, y, width * 0.3f, Fade(GameData::Colors.FgNormal, 0.5f));
-		DrawCircle(x, y, width * 0.2f, GameData::Colors.BgNormal);
+		DrawCircleV(Vector2{ x, y }, width * 0.3f, Fade(GameData::Colors.FgNormal, 0.5f));
+		DrawCircleV(Vector2{ x, y }, width * 0.2f, GameData::Colors.BgNormal);
 	}
 	//Switched off
 	else
@@ -222,23 +258,92 @@ bool AnalysisBoard::_GuiSwitch(const Rectangle& bounds, bool value, bool draw) c
 
 void AnalysisBoard::_AnalyzeGame()
 {
-	//if done
-	if (false)
+	const Engine::AnalysisData& analysisData = GameData::CurrentEngine->GetAnalysisData();
+	//Current move is done analyzing
+	if (analysisData.Depth >= GameData::AnalysisDepth)
 	{
-		m_AnalysisState = AnalysisState::DONE;
-		SetWindowState(FLAG_WINDOW_RESIZABLE);
+		if (m_AnalysisMoveIndex > -1)
+		{
+			float bestEval, currentEval;
+			std::string bestEvalStr = m_AnalysisBestMove.Eval;
+			if (bestEvalStr.find('M') == -1)
+				bestEval = stof(bestEvalStr);
+			else
+			{
+				bestEvalStr.erase(1, 1);
+				bestEval = stof(bestEvalStr) * 1000;
+			}
+			std::string currentEvalStr = analysisData.Evaluations[0];
+			if (currentEvalStr.find('M') == -1)
+				currentEval = stof(currentEvalStr);
+			else
+			{
+				currentEvalStr.erase(1, 1);
+				currentEval = stof(currentEvalStr) * 1000;
+			}
+			float evalDiff = (currentEval - bestEval) * (-(m_AnalysisMoveIndex % 2) * 2 + 1); //* -1, if it's black's move
+			AnalyzedMove currentMove;
+			currentMove.Move = m_MovesSN[m_AnalysisMoveIndex];
+			currentMove.Eval = currentEvalStr;
+			if (m_LegalMoves.size() == 1)
+				currentMove.Type = MoveType::FORCED;
+			else if (currentMove.Move == m_AnalysisBestMove.Move)
+			{
+				//TODO: Check if the move is an only move
+				currentMove.Type = MoveType::BEST;
+			}
+			else if (evalDiff < MoveEvals[0])
+				currentMove.Type = MoveType::BLUNDER;
+			else if (evalDiff < MoveEvals[1])
+				currentMove.Type = MoveType::MISTAKE;
+			else if (evalDiff < MoveEvals[2])
+				currentMove.Type = MoveType::INACCURACY;
+			else if (evalDiff < MoveEvals[3])
+				currentMove.Type = MoveType::GOOD;
+			else if (evalDiff < 0.00f)
+				currentMove.Type = MoveType::GREAT;
+			else if (evalDiff == 0.00f)
+			{
+				//TODO: Check if the move is an only move
+				currentMove.Type = MoveType::BEST;
+			}
+			else if (evalDiff > 0.00f)
+				currentMove.Type = MoveType::GENIUS;
+
+			m_AnalyzedGame.SetMove(m_AnalysisMoveIndex, m_AnalysisBestMove, currentMove);
+		}
+
+		const std::string& bestMove = analysisData.BestLines[0][0];
+		if (bestMove == "")
+			return;
+		m_AnalysisBestMove = AnalyzedMove{ MoveType::BEST, _GetShortNotation(bestMove), analysisData.Evaluations[0] };
+
+		//There are still moves to be analyzed
+		if (++m_AnalysisMoveIndex < m_Moves.size())
+		{
+			_DoMove(m_Moves[m_AnalysisMoveIndex], false, false, false);
+			GameData::CurrentEngine->SetPosition(_GetFEN());
+		}
+		//All moves have been analyzed
+		else
+		{
+			m_AnalysisState = AnalysisState::DONE;
+			m_MoveIndex = m_Moves.size() - 1;
+			_ReloadBoard(false, false);
+			SetWindowState(FLAG_WINDOW_RESIZABLE);
+		}
 	}
 }
 
 void AnalysisBoard::EvalBar_Update()
 {
-	if (m_Analyzing && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
+	if (m_EngineWorking && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
 	{
 		double currentTime = GetTime();
 
 		//Still animating
 		if (currentTime - m_StartTime < EVALBAR_ANIMATION_SECONDS)
-			m_Height = EaseSineIn(currentTime - m_StartTime, m_PreviousHeight, m_NextHeight - m_PreviousHeight, EVALBAR_ANIMATION_SECONDS);
+			m_Height = EaseSineIn((float)(currentTime - m_StartTime), m_PreviousHeight, m_NextHeight - m_PreviousHeight, EVALBAR_ANIMATION_SECONDS);
 		//Animation ends
 		else
 		{
@@ -261,17 +366,17 @@ void AnalysisBoard::EvalBar_Update()
 
 void AnalysisBoard::EvalBar_Draw() const
 {
-	if (m_Analyzing && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
+	if (m_EngineWorking && GameData::CurrentEngine->GetAnalysisData().Evaluations.size() > 0)
 	{
 		float blackSize = m_EvalBar_Bounds.height - m_Height;
-		DrawRectangle(m_EvalBar_Bounds.x, m_EvalBar_Bounds.y, m_EvalBar_Bounds.width, blackSize, GameData::Colors.BgNormal);
-		DrawRectangle(m_EvalBar_Bounds.x, m_EvalBar_Bounds.y + blackSize, m_EvalBar_Bounds.width, m_EvalBar_Bounds.height - blackSize, GameData::Colors.FgNormal);
+		DrawRectangleV(Vector2{ m_EvalBar_Bounds.x, m_EvalBar_Bounds.y }, Vector2{ m_EvalBar_Bounds.width, blackSize }, GameData::Colors.BgNormal);
+		DrawRectangleV(Vector2{ m_EvalBar_Bounds.x, m_EvalBar_Bounds.y + blackSize }, Vector2{ m_EvalBar_Bounds.width, m_EvalBar_Bounds.height - blackSize }, GameData::Colors.FgNormal);
 	}
 }
 
 void AnalysisBoard::Movelist_Update()
 {
-	m_MovelistContent_Bounds.height = (m_Moves.size() / 2 + m_Moves.size() % 2) * MOVELIST_MOVE_HEIGHT;
+	m_MovelistContent_Bounds.height = (float)(m_Moves.size() / 2 + m_Moves.size() % 2) * MOVELIST_MOVE_HEIGHT;
 
 	if (m_MovelistContent_Bounds.height > m_Movelist_Bounds.height - 2 * GuiGetStyle(DEFAULT, BORDER_WIDTH))
 		m_MovelistContent_Bounds.width = m_Movelist_Bounds.width - 2 - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH);
@@ -281,8 +386,8 @@ void AnalysisBoard::Movelist_Update()
 	//Clicked on a move from the movelist
 	if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), m_Movelist_Bounds) && CheckCollisionPointRec(GetMousePosition(), m_MovelistContent_Bounds) && GetMouseX() > m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH)
 	{
-		int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
-		int newMoveIndex = std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width);
+		float width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+		int newMoveIndex = (int)std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (int)(GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width);
 		if (newMoveIndex != m_MoveIndex && newMoveIndex < m_Moves.size())
 		{
 			m_MoveIndex = newMoveIndex;
@@ -302,14 +407,14 @@ void AnalysisBoard::Movelist_Draw() const
 	DrawRectangleRec(m_Movelist_Bounds, GameData::Colors.BgNormal);
 	Rectangle view = GuiScrollPanel(m_Movelist_Bounds, m_MovelistContent_Bounds, (Vector2*) &m_Movelist_Scroll);
 
-	BeginScissorMode(view.x, view.y, view.width, view.height);
-	int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+	BeginScissorMode((int)view.x, (int)view.y, (int)view.width, (int)view.height);
+	float width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
 	
 	//Draw move numbers
 	float x;
 	for (int i = 0; i < m_Moves.size() / 2 + m_Moves.size() % 2; i++)
 	{
-		DrawRectangle(m_Movelist_Bounds.x, m_Movelist_Bounds.y + m_Movelist_Scroll.y + i * MOVELIST_MOVE_HEIGHT, MOVELIST_MOVENUMBER_WIDTH - 2, MOVELIST_MOVE_HEIGHT, GameData::Colors.BgHovered);
+		DrawRectangleV(Vector2{ m_Movelist_Bounds.x, m_Movelist_Bounds.y + m_Movelist_Scroll.y + i * MOVELIST_MOVE_HEIGHT }, Vector2{ MOVELIST_MOVENUMBER_WIDTH - 2, MOVELIST_MOVE_HEIGHT }, GameData::Colors.BgHovered);
 		if (i < 9)
 			x = m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH * 0.5f - MOVELIST_MOVE_HEIGHT * 0.25f;
 		else if (i < 99)
@@ -320,7 +425,8 @@ void AnalysisBoard::Movelist_Draw() const
 	}
 
 	//Draw current move
-	DrawRectangle(m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (m_MoveIndex % 2 == 0 ? 0 : width), m_Movelist_Bounds.y + m_Movelist_Scroll.y + m_MoveIndex / 2 * MOVELIST_MOVE_HEIGHT, width, MOVELIST_MOVE_HEIGHT, GameData::Colors.BgFocused);
+	if (m_MoveIndex > -1)
+		DrawRectangleV(Vector2{ m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (m_MoveIndex % 2 == 0 ? 0 : width), m_Movelist_Bounds.y + m_Movelist_Scroll.y + m_MoveIndex / 2 * MOVELIST_MOVE_HEIGHT }, Vector2{ width, (float)MOVELIST_MOVE_HEIGHT }, GameData::Colors.BgFocused);
 
 	//Draw mouse hover move
 	if (CheckCollisionPointRec(GetMousePosition(), m_Movelist_Bounds) && CheckCollisionPointRec(GetMousePosition(), m_MovelistContent_Bounds) && GetMouseX() > m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH)
@@ -328,7 +434,7 @@ void AnalysisBoard::Movelist_Draw() const
 		int offset = (int)((((int)m_Movelist_Scroll.y - 1) / MOVELIST_MOVE_HEIGHT + 1) * MOVELIST_MOVE_HEIGHT + m_Movelist_Scroll.y - 1) % MOVELIST_MOVE_HEIGHT;
 		if (std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width) < m_Moves.size())
 		{
-			DrawRectangle(m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width ? width : 0), m_Movelist_Bounds.y + std::floor((GetMouseY() - offset - m_Movelist_Bounds.y) / MOVELIST_MOVE_HEIGHT) * MOVELIST_MOVE_HEIGHT + offset + 1, width, MOVELIST_MOVE_HEIGHT, Fade(GameData::Colors.BgFocused, 0.5f));
+			DrawRectangleV(Vector2{ m_Movelist_Bounds.x + MOVELIST_MOVENUMBER_WIDTH + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width ? width : 0), m_Movelist_Bounds.y + std::floor((GetMouseY() - offset - m_Movelist_Bounds.y) / MOVELIST_MOVE_HEIGHT) * MOVELIST_MOVE_HEIGHT + offset + 1 }, Vector2{ width, (float)MOVELIST_MOVE_HEIGHT }, Fade(GameData::Colors.BgFocused, 0.5f));
 		}
 	}
 
@@ -346,7 +452,7 @@ void AnalysisBoard::Movelist_Draw() const
 bool AnalysisBoard::Movelist_CheckCursor() const
 {
 	Vector2 mousePos = GetMousePosition();
-	int width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
+	float width = (m_Movelist_Bounds.width - 2 - MOVELIST_MOVENUMBER_WIDTH) * 0.5f;
 	if (CheckCollisionPointRec(mousePos, m_Movelist_Bounds) && CheckCollisionPointRec(mousePos, m_MovelistContent_Bounds) && std::floor((GetMouseY() - m_Movelist_Bounds.y - m_Movelist_Scroll.y + 1) / MOVELIST_MOVE_HEIGHT) * 2 + (GetMouseX() - m_Movelist_Bounds.x - MOVELIST_MOVENUMBER_WIDTH > width) < m_Moves.size())
 		return true;
 	return false;
@@ -356,11 +462,11 @@ void AnalysisBoard::BestLines_Update()
 {
 	//Check if the switch is clicked
 	float size = BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO;
-	bool switched = _GuiSwitch(Rectangle{ m_BestLines_Bounds.x + m_BestLines_Bounds.width - 2 * size - BESTLINES_PADDING, m_BestLines_Bounds.y + BESTLINES_PADDING, size * 2, size }, m_Analyzing, false);
+	bool switched = _GuiSwitch(Rectangle{ m_BestLines_Bounds.x + m_BestLines_Bounds.width - 2 * size - BESTLINES_PADDING, m_BestLines_Bounds.y + BESTLINES_PADDING, size * 2, size }, m_EngineWorking, false);
 	if (switched)
 	{
-		(bool)m_Analyzing = !m_Analyzing;
-		if (m_Analyzing)
+		(bool)m_EngineWorking = !m_EngineWorking;
+		if (m_EngineWorking)
 		{
 			GameData::CurrentEngine->SetMode(Engine::Mode::ANALYZE);
 			GameData::CurrentEngine->ResizeAnalysisData();
@@ -396,17 +502,17 @@ void AnalysisBoard::BestLines_Update()
 		bool blackInCheckBackup = m_BlackInCheck;
 		int8_t sideToMoveBackup = m_SideToMove;
 
-		for (int i = 0; i < analysisData.BestLinesSN.size(); i++)
+		for (int i = 0; i < analysisData.BestLines.size(); i++)
 		{
 			analysisData.BestLinesSN[i].resize(analysisData.BestLines[i].size());
-			for (int j = 0; j < analysisData.BestLinesSN[i].size(); j++)
+			for (int j = 0; j < analysisData.BestLines[i].size(); j++)
 			{
 				if (analysisData.BestLines[i][j] == "")
 					analysisData.BestLinesSN[i][j] = "";
 				else
 				{
 					analysisData.BestLinesSN[i][j] = _GetShortNotation(analysisData.BestLines[i][j]);
-					_DoMove(analysisData.BestLines[i][j], false, false);
+					_DoMove(analysisData.BestLines[i][j], false, false, false);
 				}
 			}
 			
@@ -452,9 +558,9 @@ void AnalysisBoard::BestLines_Update()
 	//Update and add best lines
 	for (int i = 0; i < m_BestLines_UITexts.size(); i++)
 	{
-		int xOffset = BESTLINES_SPACING + m_BestLines_UITexts[i][0].GetBounds().width + BESTLINES_SPACING;
+		float xOffset = BESTLINES_SPACING + m_BestLines_UITexts[i][0].GetBounds().width + BESTLINES_SPACING;
 		int screenWidth = GetScreenWidth();
-		int yOffset = BESTLINES_PADDING * 3 + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + i * (m_BestLines_UITexts[i][0].GetBounds().height + BESTLINES_SPACING) + (BESTLINES_UITEXT_SIZE_RATIO - 1.0f) * m_BestLines_UITexts[i][0].GetBounds().height * 0.5f;
+		float yOffset = BESTLINES_PADDING * 3 + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO + i * (m_BestLines_UITexts[i][0].GetBounds().height + BESTLINES_SPACING) + (BESTLINES_UITEXT_SIZE_RATIO - 1.0f) * m_BestLines_UITexts[i][0].GetBounds().height * 0.5f;
 		for (int j = 1; j < m_BestLines_UITexts[i].size(); j++)
 		{
 			//Set size, text and position
@@ -465,7 +571,7 @@ void AnalysisBoard::BestLines_Update()
 
 			//Move it off the screen if it does not fit onto the bestlines area
 			if (xOffset + w > m_BestLines_Bounds.width)
-				xOffset = screenWidth + 10;
+				xOffset = screenWidth + 10.0f;
 			else
 				xOffset += BESTLINES_SPACING;
 			text.SetPosition(Vector2{ m_BestLines_Bounds.x + xOffset, m_BestLines_Bounds.y + yOffset });
@@ -502,7 +608,7 @@ void AnalysisBoard::BestLines_Update()
 
 void AnalysisBoard::BestLines_Draw() const
 {
-	DrawRectangle(m_BestLines_Bounds.x, m_BestLines_Bounds.y, m_BestLines_Bounds.width, m_BestLines_Bounds.height, GameData::Colors.BgNormal);
+	DrawRectangleV(Vector2{ m_BestLines_Bounds.x, m_BestLines_Bounds.y }, Vector2{ m_BestLines_Bounds.width, m_BestLines_Bounds.height }, GameData::Colors.BgNormal);
 	
 	//Draw the top part
 	Engine::AnalysisData& analysisData = const_cast<Engine::AnalysisData&>(GameData::CurrentEngine->GetAnalysisData());
@@ -529,10 +635,10 @@ void AnalysisBoard::BestLines_Draw() const
 	DrawTextEx(GameData::MainFont, depthStr.c_str(), Vector2{ x, y }, BESTLINES_UITEXT_SIZE, 0.0f, GameData::Colors.FgNormal);
 
 	//Separator
-	DrawRectangle(m_BestLines_Bounds.x, m_BestLines_Bounds.y + 2 * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO - 2, m_BestLines_Bounds.width, 4, GameData::Colors.Background);
+	DrawRectangleV(Vector2{ m_BestLines_Bounds.x, m_BestLines_Bounds.y + 2 * BESTLINES_PADDING + BESTLINES_UITEXT_SIZE * BESTLINES_UITEXT_SIZE_RATIO * BESTLINES_UITEXT_SIZE_RATIO - 2 }, Vector2{ m_BestLines_Bounds.width, 4.0f }, GameData::Colors.Background);
 
 	//Switch
-	_GuiSwitch(Rectangle{ m_BestLines_Bounds.x + m_BestLines_Bounds.width - 2 * size - BESTLINES_PADDING, m_BestLines_Bounds.y + BESTLINES_PADDING, size * 2, size }, m_Analyzing, true);
+	_GuiSwitch(Rectangle{ m_BestLines_Bounds.x + m_BestLines_Bounds.width - 2 * size - BESTLINES_PADDING, m_BestLines_Bounds.y + BESTLINES_PADDING, size * 2, size }, m_EngineWorking, true);
 
 	//Draw the best lines
 	for (int i = 0; i < m_BestLines_UITexts.size(); i++)

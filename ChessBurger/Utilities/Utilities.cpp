@@ -11,7 +11,7 @@ namespace Utils
 		ss.precision(decimals);
 		ss << num;
 		std::string s = ss.str();
-		int idx = s.find('.');
+		int idx = (int)s.find('.');
 		int diff;
 		if (idx == -1)
 		{
@@ -19,7 +19,7 @@ namespace Utils
 			diff = decimals;
 		}
 		else
-			diff = decimals - s.size() + 1 + idx;
+			diff = decimals - (int)s.size() + 1 + idx;
 
 		for (int i = 0; i < diff; i++)
 			s += "0";

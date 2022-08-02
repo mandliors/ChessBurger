@@ -42,14 +42,14 @@ Game::Game(GameState state)
 	//Calculate avarage colours
 	Image darkImg = LoadImageFromTexture(GameData::Textures.Dark);
 	Color* darkColors = LoadImageColors(darkImage);
-	double pixelCount = darkImg.width * darkImg.height;
-	double r = 0, g = 0, b = 0, a = 0;
+	unsigned char pixelCount = darkImg.width * darkImg.height;
+	unsigned char r = 0, g = 0, b = 0, a = 0;
 	for (int i = 0; i < pixelCount; i++)
 	{
-		r += (double)darkColors[i].r;
-		g += (double)darkColors[i].g;
-		b += (double)darkColors[i].b;
-		a += (double)darkColors[i].a;
+		r += darkColors[i].r;
+		g += darkColors[i].g;
+		b += darkColors[i].b;
+		a += darkColors[i].a;
 	}
 	GameData::Colors.DarkAvarage.r = r / pixelCount;
 	GameData::Colors.DarkAvarage.g = g / pixelCount;
@@ -63,10 +63,10 @@ Game::Game(GameState state)
 	r = 0, g = 0, b = 0, a = 0;
 	for (int i = 0; i < pixelCount; i++)
 	{
-		r += (double)lightColors[i].r;
-		g += (double)lightColors[i].g;
-		b += (double)lightColors[i].b;
-		a += (double)lightColors[i].a;
+		r += lightColors[i].r;
+		g += lightColors[i].g;
+		b += lightColors[i].b;
+		a += lightColors[i].a;
 	}
 	GameData::Colors.LightAvarage.r = r / pixelCount;
 	GameData::Colors.LightAvarage.g = g / pixelCount;

@@ -25,10 +25,10 @@ public:
 				2 * boardBounds.x + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.x,
 				2 * boardBounds.y + 8 * std::floor(boardBounds.width / 8.0f) - m_Position.y
 			};
-			DrawCircle(pos.x, pos.y, Size / 2.0f * SPOT_SIZE_P, m_Color);
+			DrawCircleV(pos, (float)Size / 2.0f * SPOT_SIZE_P, m_Color);
 		}
 		else
-			DrawCircle(m_Position.x, m_Position.y, Size / 2.0f * SPOT_SIZE_P, m_Color);
+			DrawCircleV(m_Position, (float)Size / 2.0f * SPOT_SIZE_P, m_Color);
 	}
 
 	void UpdatePosition(const Rectangle& bounds, uint32_t size) override

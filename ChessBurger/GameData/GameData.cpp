@@ -14,5 +14,7 @@ std::mutex GameData::EngineMutex;
 Color GameData::ArrowColor = DARKBLUE;
 float GameData::ArrowOpacity = 0.8f;
 
+uint32_t GameData::AnalysisDepth = 18;
+
 bool GameData::SupportAnimations = true;
 bool GameData::MuteSounds = false;
