@@ -1,8 +1,9 @@
 # ChessBurger
-ChessBurger is a modern chess GUI written by Progmaster.
 
-## Why ChessBurger?
-The reason I started working on a new chess GUI, is that most of the older ones are outdated, and are complicated to use.
-ChessBurger is quite feature rich, yet user friendly, and has a beautiful and modern look. No matter your chess skills or
-experience, ChessBurger WILL definitely be a useful tool for you!
-And it's completely FREE! So why not give it a try? :P
+A modern, hardware-accelerated Chess GUI and Analysis tool written in C++ and Raylib. Features deep Stockfish integration for move evaluation, a custom board editor for starting games from any position, and a focus on minimalist, high-performance UI design.
+
+# Screenshots
+
+![Analysis Board](screenshots/analysis-board.png)
+![Game Board](screenshots/game-board.png)
+![Setup Board](screenshots/setup-board.png)
