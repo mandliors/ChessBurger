@@ -4,6 +4,11 @@ A modern, hardware-accelerated Chess GUI and Analysis tool written in C++ and Ra
 
 # Screenshots
 
+Analysis Board:
 ![Analysis Board](screenshots/analysis-board.png)
+
+Game Board:
 ![Game Board](screenshots/game-board.png)
+
+Setup Board:
 ![Setup Board](screenshots/setup-board.png)
